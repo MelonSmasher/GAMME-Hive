@@ -8,9 +8,9 @@ import java.nio.file.Paths;
 /**
  * Created by melon on 3/27/16.
  */
-public class Util {
+class Util {
 
-    public Util() {
+    Util() {
 
     }
 
