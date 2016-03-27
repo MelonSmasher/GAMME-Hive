@@ -32,4 +32,27 @@ class Packets {
         String name = "Drone";
         String text;
     }
+
+    static class Packet06PayloadRequest {
+        String name = "Drone";
+    }
+
+    static class Packet07PayloadResponse {
+        String name = "Drone";
+        String conf;
+        String targets;
+    }
+
+    static class Packet08ThreadCountRequest {
+    }
+
+    static class Packet09ThreadCountResponse {
+        String name = "Drone";
+        int count;
+    }
+
+    static class Packet10ProgressUpdate {
+        String name = "Drone";
+        int percent;
+    }
 }

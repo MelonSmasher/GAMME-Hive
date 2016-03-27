@@ -2,13 +2,17 @@ package com.melonsmasher.hivegamme;
 
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import com.lambdaworks.redis.api.sync.RedisCommands;
 
 /**
  * Created by melon on 3/26/16.
  */
 class ServerNetworkListener extends Listener {
 
-    ServerNetworkListener() {
+    RedisCommands<String, String> mRedisSync;
+
+    ServerNetworkListener(RedisCommands<String, String> redisCommands) {
+        this.mRedisSync = redisCommands;
     }
 
     @Override
@@ -31,10 +35,13 @@ class ServerNetworkListener extends Listener {
             response.a = true;
             System.out.println("[" + ((Packets.Packet00JoinRequest) o).name + "][MSG] >> Has requested access.");
             connection.sendTCP(response);
+            mRedisSync.set("Drone" + connection.getID(), ((Packets.Packet00JoinRequest) o).name);
         } else if (o instanceof Packets.Packet02Ping) {
             Packets.Packet03Pong response = new Packets.Packet03Pong();
             System.out.println("[" + ((Packets.Packet02Ping) o).name + "][MSG] >> " + ((Packets.Packet02Ping) o).m + ".");
             connection.sendUDP(response);
+        } else if (o instanceof Packets.Packet04Message) {
+            System.out.println("[" + ((Packets.Packet04Message) o).name + "][MSG] >> " + ((Packets.Packet04Message) o).text + ".");
         }
     }
 

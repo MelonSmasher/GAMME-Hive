@@ -6,11 +6,31 @@
     "db": 0
   },
   "queen": {
+    "service_account_json_path": "/etc/hive/privatekey.json",
+    "email_list": "/etc/hive/emails.csv",
+    "imap_password": "IMAPMasterPassword",
     "tcp_port": 25801,
     "udp_port": 25802
   },
   "drone": {
-    "gamme_path": "",
-    "queen_address": "192.168.1.10"
+    "working_dir": "C:\\hive\\tmp",
+    "queen_address": "localhost",
+    "timeout": 500,
+    "tcp_port": 25801,
+    "udp_port": 25802
+  },
+  "gamme" : {
+    "program_path": "C:\\Program Files (x86)\\Google\\Google Apps Migration\\ExchangeMigration.exe",
+    "threads": 10,
+    "google_apps_admin": "sysadmin@domain.tld",
+    "retry_count": 5,
+    "imap_security": false,
+    "imap_port": 143,
+    "imap_server_type": "courier",
+    "google_domain": "domain.tld",
+    "exclude_top_level_folders" : [
+      "BULK",
+      "SPAM"
+    ]
   }
 }

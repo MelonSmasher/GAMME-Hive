@@ -8,6 +8,8 @@ import com.lambdaworks.redis.api.sync.RedisCommands;
 
 import org.json.*;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Scanner;
@@ -20,22 +22,19 @@ public class Queen {
     private int mPortTCP = 25851, mPortUDP = 25852, mRedisPort, mRedisDB;
     private String mRedisHost, mRedisPass = "";
     private Server mServer;
-    private ServerNetworkListener mListener;
-    private RedisClient mRedisClient;
-    private StatefulRedisConnection<String, String> mRedisConnection;
     private RedisCommands<String, String> mRedisSync;
     private JSONObject config;
-    private Scanner mReader;
 
     private Queen() {
 
         init();
         initRedis();
+        initEmailCache();
 
         System.out.println("[QUEEN][INFO] >> Initializing server instance...");
 
         mServer = new Server();
-        mListener = new ServerNetworkListener();
+        ServerNetworkListener mListener = new ServerNetworkListener(mRedisSync);
         mServer.addListener(mListener);
 
         try {
@@ -68,7 +67,7 @@ public class Queen {
 
     private void init() {
 
-        mReader = new Scanner(System.in);
+        Scanner mReader = new Scanner(System.in);
         System.out.println("[QUEEN][CONF] >> Configuration file path: ");
         String configFilePath = mReader.nextLine();
         String configStr = "";
@@ -92,11 +91,32 @@ public class Queen {
 
     private void initRedis() {
 
-        mRedisClient = RedisClient.create("redis://" + mRedisPass + "@" + mRedisHost + ":" + String.valueOf(mRedisPort) + "/" + String.valueOf(mRedisDB));
-        mRedisConnection = mRedisClient.connect();
+        RedisClient mRedisClient = RedisClient.create("redis://" + mRedisPass + "@" + mRedisHost + ":" + String.valueOf(mRedisPort) + "/" + String.valueOf(mRedisDB));
+        StatefulRedisConnection<String, String> mRedisConnection = mRedisClient.connect();
         mRedisSync = mRedisConnection.sync();
         System.out.println("[QUEEN][INFO] >> Connection to Redis has been established.");
 
+    }
+
+    private void initEmailCache() {
+        String mEmailFile = config.getJSONObject("queen").getString("email_list");
+
+        System.out.println("[QUEEN][INFO] >> Reading emails into cache... please wait.");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(mEmailFile))) {
+            for (String line; (line = br.readLine()) != null; ) {
+                String entry = mRedisSync.get(line);
+                if (entry == null) {
+                    mRedisSync.set(line, "queue");
+                    mRedisSync.set(line + "-line", line);
+                    mRedisSync.set(line + "-progress", "0");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("[QUEEN][ERROR] >> Could not find email file: " + mEmailFile);
+            System.exit(3);
+        }
     }
 
     public static void main(String[] args) {
