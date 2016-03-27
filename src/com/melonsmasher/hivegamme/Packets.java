@@ -27,4 +27,9 @@ class Packets {
         String name = "Drone";
         String text;
     }
+
+    static class Packet05GammeLog {
+        String name = "Drone";
+        String text;
+    }
 }

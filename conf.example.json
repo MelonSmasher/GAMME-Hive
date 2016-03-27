@@ -1,0 +1,15 @@
+{
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "password": "",
+    "db": 0
+  },
+  "queen": {
+    "tcp_port": 25801,
+    "udp_port": 25802
+  },
+  "drone": {
+    "gamme_path": ""
+  }
+}
