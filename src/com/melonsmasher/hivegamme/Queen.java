@@ -2,9 +2,6 @@ package com.melonsmasher.hivegamme;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Server;
-import com.lambdaworks.redis.RedisClient;
-import com.lambdaworks.redis.api.StatefulRedisConnection;
-import com.lambdaworks.redis.api.sync.RedisCommands;
 
 import org.json.*;
 
@@ -19,22 +16,21 @@ import java.util.Scanner;
  */
 public class Queen {
 
-    private int mPortTCP = 25851, mPortUDP = 25852, mRedisPort, mRedisDB;
-    private String mRedisHost, mRedisPass = "";
+    private int mPortTCP = 25851, mPortUDP = 25852, mSQLPort, mSQLDB;
+    private String mSQLHost, mSQLPass, mSQLUser;
     private Server mServer;
-    private RedisCommands<String, String> mRedisSync;
     private JSONObject config;
 
     private Queen() {
 
         init();
-        initRedis();
+        initSQL();
         initEmailCache();
 
         System.out.println("[QUEEN][INFO] >> Initializing server instance...");
 
         mServer = new Server();
-        ServerNetworkListener mListener = new ServerNetworkListener(mRedisSync);
+        ServerNetworkListener mListener = new ServerNetworkListener();
         mServer.addListener(mListener);
 
         try {
@@ -86,43 +82,30 @@ public class Queen {
         }
         config = new JSONObject(configStr);
 
-        mRedisHost = config.getJSONObject("redis").getString("host");
-        mRedisPort = config.getJSONObject("redis").getInt("port");
-        mRedisPass = config.getJSONObject("redis").getString("password");
-        mRedisDB = config.getJSONObject("redis").getInt("db");
-
         mPortTCP = config.getJSONObject("queen").getInt("tcp_port");
         mPortUDP = config.getJSONObject("queen").getInt("udp_port");
     }
 
-    private void initRedis() {
+    private void initSQL() {
 
-        RedisClient mRedisClient = RedisClient.create("redis://" + mRedisPass + "@" + mRedisHost + ":" + String.valueOf(mRedisPort) + "/" + String.valueOf(mRedisDB));
-        StatefulRedisConnection<String, String> mRedisConnection = mRedisClient.connect();
-        mRedisSync = mRedisConnection.sync();
-        System.out.println("[QUEEN][INFO] >> Connection to Redis has been established.");
+        System.out.println("[QUEEN][INFO] >> Connection to MySQL has been established.");
 
     }
 
     private void initEmailCache() {
         String mEmailFile = config.getJSONObject("queen").getString("email_list");
 
-        System.out.println("[QUEEN][INFO] >> Reading emails into cache... please wait.");
+        System.out.println("[QUEEN][INFO] >> Reading emails into DB...");
 
         try (BufferedReader br = new BufferedReader(new FileReader(mEmailFile))) {
             for (String line; (line = br.readLine()) != null; ) {
-                String entry = mRedisSync.get(line);
-                if (entry == null) {
-                    mRedisSync.set(line, "queue");
-                    mRedisSync.set(line + "-line", line);
-                    mRedisSync.set(line + "-progress", "0");
-                }
+
             }
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("[QUEEN][ERROR] >> Could not find email file: " + mEmailFile);
-            System.exit(3);
         }
+
     }
 
     public static void main(String[] args) {

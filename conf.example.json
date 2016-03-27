@@ -1,9 +1,10 @@
 {
-  "redis": {
+  "sql": {
     "host": "localhost",
-    "port": 6379,
-    "password": "",
-    "db": 0
+    "port": 3306,
+    "password": "StrongPassword",
+    "user": "hive",
+    "db_name": "gamme_hive"
   },
   "queen": {
     "service_account_json_path": "/etc/hive/privatekey.json",
