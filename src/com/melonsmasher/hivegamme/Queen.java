@@ -63,6 +63,12 @@ public class Queen {
         mKryo.register(Packets.Packet02Ping.class);
         mKryo.register(Packets.Packet03Pong.class);
         mKryo.register(Packets.Packet04Message.class);
+        mKryo.register(Packets.Packet05GammeLog.class);
+        mKryo.register(Packets.Packet06PayloadRequest.class);
+        mKryo.register(Packets.Packet07PayloadResponse.class);
+        mKryo.register(Packets.Packet08ThreadCountRequest.class);
+        mKryo.register(Packets.Packet09ThreadCountResponse.class);
+        mKryo.register(Packets.Packet10ProgressUpdate.class);
     }
 
     private void init() {

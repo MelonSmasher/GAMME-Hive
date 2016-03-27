@@ -19,6 +19,7 @@ public class Drone {
     private int mPortTCP = 25801, mPortUDP = 25802, mTimeOut = 5000;
     private String mServerHost = "localhost";
     private Client mClient;
+    private boolean busy = false;
     public String mName = "Drone";
     private JSONObject config;
 
@@ -28,7 +29,7 @@ public class Drone {
 
         System.out.println("[DRONE][INFO] >> Initializing client instance...");
         mClient = new Client();
-        ClientNetworkListener mListener = new ClientNetworkListener(mClient);
+        ClientNetworkListener mListener = new ClientNetworkListener(mClient, this);
         mClient.addListener(mListener);
         registerPackets();
         mName = setName();
@@ -56,10 +57,18 @@ public class Drone {
             System.out.println("[DRONE][ERROR] >> Failed to connect to Queen! TCP: " + mServerHost + ":" + mPortTCP + " - UDP: " + mServerHost + ":" + mPortUDP);
         }
 
-        sendPing();
+        setBusy(false);
 
         while (true) {
-
+            if (!busy) {
+                setBusy(true);
+                int threads = config.getJSONObject("gamme").getInt("threads");
+                Packets.Packet06PayloadRequest packet = new Packets.Packet06PayloadRequest();
+                packet.name = mName;
+                packet.threads = threads;
+                System.out.println("[DRONE][INFO] >> I have no work to do. Requesting work.");
+                mClient.sendTCP(packet);
+            }
         }
     }
 
@@ -70,12 +79,18 @@ public class Drone {
         mKryo.register(Packets.Packet02Ping.class);
         mKryo.register(Packets.Packet03Pong.class);
         mKryo.register(Packets.Packet04Message.class);
+        mKryo.register(Packets.Packet05GammeLog.class);
+        mKryo.register(Packets.Packet06PayloadRequest.class);
+        mKryo.register(Packets.Packet07PayloadResponse.class);
+        mKryo.register(Packets.Packet08ThreadCountRequest.class);
+        mKryo.register(Packets.Packet09ThreadCountResponse.class);
+        mKryo.register(Packets.Packet10ProgressUpdate.class);
     }
 
     private void sendPing() {
         Packets.Packet02Ping ping = new Packets.Packet02Ping();
         ping.name = mName;
-        mClient.sendUDP(ping);
+        mClient.sendTCP(ping);
     }
 
     private String setName() {
@@ -121,6 +136,14 @@ public class Drone {
                 se.printStackTrace();
             }
         }
+    }
+
+    public void setBusy(boolean status) {
+        this.busy = status;
+    }
+
+    public boolean getBusy() {
+        return this.busy;
     }
 
     public static void main(String[] args) {

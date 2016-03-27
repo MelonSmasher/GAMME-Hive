@@ -35,6 +35,7 @@ class Packets {
 
     static class Packet06PayloadRequest {
         String name = "Drone";
+        int threads;
     }
 
     static class Packet07PayloadResponse {
