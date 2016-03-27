@@ -20,4 +20,32 @@ class Util {
         return new String(encoded, encoding);
     }
 
+
+    static String defaultConfDir() {
+        if (isWindows()) {
+            return "C:\\Program Files\\GAMME Hive\\";
+        } else if (isMac()) {
+            return "/usr/local/etc/gamme_hive/";
+        } else if (isUnix()) {
+            return "/etc/gamme_hive/";
+        } else {
+            return null;
+        }
+    }
+
+
+    static boolean isWindows() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return (OS.contains("win"));
+    }
+
+    static boolean isMac() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return (OS.contains("mac"));
+    }
+
+    static boolean isUnix() {
+        String OS = System.getProperty("os.name").toLowerCase();
+        return (OS.contains("nix") || OS.contains("nux") || OS.indexOf("aix") > 0);
+    }
 }

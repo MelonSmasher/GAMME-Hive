@@ -4,7 +4,7 @@
     "port": 3306,
     "password": "StrongPassword",
     "user": "hive",
-    "db_name": "gamme_hive"
+    "db": "gamme_hive"
   },
   "queen": {
     "service_account_json_path": "/etc/hive/privatekey.json",

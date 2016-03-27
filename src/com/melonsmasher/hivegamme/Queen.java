@@ -9,16 +9,20 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Scanner;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.SQLException;
 
 /**
  * Created by melon on 3/26/16.
  */
 public class Queen {
 
-    private int mPortTCP = 25851, mPortUDP = 25852, mSQLPort, mSQLDB;
-    private String mSQLHost, mSQLPass, mSQLUser;
+    private int mPortTCP = 25851, mPortUDP = 25852;
     private Server mServer;
+    private Connection mySQLConnection;
     private JSONObject config;
 
     private Queen() {
@@ -68,10 +72,8 @@ public class Queen {
     }
 
     private void init() {
-
-        Scanner mReader = new Scanner(System.in);
-        System.out.println("[QUEEN][CONF] >> Configuration file path: ");
-        String configFilePath = mReader.nextLine();
+        System.out.println("[QUEEN][INFO] >> Loading configuration.");
+        String configFilePath = Util.defaultConfDir() + "conf.json";
         String configStr = "";
         try {
             configStr = Util.readFile(configFilePath, Charset.defaultCharset());
@@ -81,21 +83,45 @@ public class Queen {
             System.exit(3);
         }
         config = new JSONObject(configStr);
-
         mPortTCP = config.getJSONObject("queen").getInt("tcp_port");
         mPortUDP = config.getJSONObject("queen").getInt("udp_port");
     }
 
     private void initSQL() {
+        try {
+            String mSQLHost = config.getJSONObject("sql").getString("host");
+            int mSQLPort = config.getJSONObject("sql").getInt("port");
+            String mSQLUser = config.getJSONObject("sql").getString("user");
+            String mSQLPass = config.getJSONObject("sql").getString("password");
+            String mSQLDB = config.getJSONObject("sql").getString("db");
+            String url = "jdbc:mysql://" + mSQLHost + ":" + String.valueOf(mSQLPort) + "/" + mSQLDB;
+            mySQLConnection = DriverManager.getConnection(url, mSQLUser, mSQLPass);
+            Statement st = mySQLConnection.createStatement();
+            ResultSet rs = st.executeQuery("SELECT VERSION()");
+            String version = "";
+            if (rs.next()) {
+                version = ": " + rs.getString(1);
+            }
+            System.out.println("[QUEEN][INFO] >> Connection to MySQL has been established" + version);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            System.out.println("[QUEEN][ERROR] >> Could not connect to MySQL. Please check config... Exiting!");
+            System.exit(4);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("[QUEEN][ERROR] >> Could not load MySQL configuration. Please check config... Exiting!");
+            System.exit(4);
+        }
+    }
 
-        System.out.println("[QUEEN][INFO] >> Connection to MySQL has been established.");
+    private void initSQLSchema() {
 
     }
 
     private void initEmailCache() {
         String mEmailFile = config.getJSONObject("queen").getString("email_list");
 
-        System.out.println("[QUEEN][INFO] >> Reading emails into DB...");
+        System.out.println("[QUEEN][INFO] >> Reading new emails into DB...");
 
         try (BufferedReader br = new BufferedReader(new FileReader(mEmailFile))) {
             for (String line; (line = br.readLine()) != null; ) {
