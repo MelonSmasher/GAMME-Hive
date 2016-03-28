@@ -43,15 +43,7 @@ class ServerNetworkListener extends Listener {
             System.out.println("[" + ((Packets.Packet04Message) o).name + "][MSG] >> " + ((Packets.Packet04Message) o).text + ".");
         } else if (o instanceof Packets.Packet06PayloadRequest) {
             System.out.println("[" + ((Packets.Packet06PayloadRequest) o).name + "][MSG] >> Drone reporting for duty!");
-            String mPayload = mQueen.retrieveWorkLoad(((Packets.Packet06PayloadRequest) o).threads);
-            if (!mPayload.isEmpty()) {
-                Packets.Packet07PayloadResponse packet = new Packets.Packet07PayloadResponse();
-                packet.payload = mPayload;
-                connection.sendTCP(packet);
-            } else {
-                Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
-                connection.sendTCP(packet);
-            }
+            mQueen.sendWorkLoad(((Packets.Packet06PayloadRequest) o).threads, connection);
         }
     }
 
