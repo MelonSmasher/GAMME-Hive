@@ -148,12 +148,12 @@ public class Queen {
     }
 
     String retrieveWorkLoad(int droneThreads) {
-        String payload = "";
+        StringBuilder payload = new StringBuilder("");
         try {
             ResultSet res = mStatement.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE LIMIT " + droneThreads);
             String imapPass = config.getJSONObject("queen").getString("imap_password");
             while (res.next()) {
-                payload += res.getString(2) + imapPass + "\n";
+                payload.append(res.getString(2) + imapPass + "\n");
                 Statement tmpStatement = mySQLConnection.createStatement();
                 tmpStatement.executeUpdate("UPDATE emails SET queue=FALSE, processing=TRUE WHERE id=" + res.getString(1));
                 tmpStatement.closeOnCompletion();
@@ -161,7 +161,7 @@ public class Queen {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return payload;
+        return payload.toString();
     }
 
     public static void main(String[] args) {

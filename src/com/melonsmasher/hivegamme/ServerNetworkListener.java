@@ -43,7 +43,7 @@ class ServerNetworkListener extends Listener {
         } else if (o instanceof Packets.Packet06PayloadRequest) {
             System.out.println("[" + ((Packets.Packet06PayloadRequest) o).name + "][MSG] >> Drone reporting for duty!");
             String mPayload = mQueen.retrieveWorkLoad(((Packets.Packet06PayloadRequest) o).threads);
-            if (mPayload != "") {
+            if (!mPayload.isEmpty()) {
                 Packets.Packet07PayloadResponse packet = new Packets.Packet07PayloadResponse();
                 packet.payload = mPayload;
                 connection.sendTCP(packet);

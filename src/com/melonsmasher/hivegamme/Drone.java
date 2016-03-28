@@ -19,7 +19,7 @@ public class Drone {
     private int mPortTCP = 25801, mPortUDP = 25802, mTimeOut = 5000;
     private String mServerHost = "localhost";
     private Client mClient;
-    private boolean busy = false;
+    private boolean busy = false, init = true;
     public String mName = "Drone";
     private JSONObject config;
 
@@ -57,16 +57,17 @@ public class Drone {
             System.out.println("[DRONE][ERROR] >> Failed to connect to Queen! TCP: " + mServerHost + ":" + mPortTCP + " - UDP: " + mServerHost + ":" + mPortUDP);
         }
 
-        setBusy(false);
-
         while (true) {
             if (!getBusy()) {
-                try {
-                    Thread.sleep(10000);
-                } catch (Exception e){
-                    e.printStackTrace();
+                if (!init) {
+                    try {
+                        Thread.sleep(10000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 setBusy(true);
+                init = false;
                 int threads = config.getJSONObject("gamme").getInt("threads");
                 Packets.Packet06PayloadRequest packet = new Packets.Packet06PayloadRequest();
                 packet.name = mName;
