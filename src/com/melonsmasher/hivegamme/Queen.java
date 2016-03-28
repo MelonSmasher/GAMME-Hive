@@ -37,8 +37,8 @@ public class Queen {
                 while (true) {
                     try {
                         readInEmails();
-                        // Look for new addresses every 30 seconds
-                        Thread.sleep(30000);
+                        // Look for new addresses every 10 seconds
+                        Thread.sleep(10000);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -142,22 +142,54 @@ public class Queen {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Could not find email file: " + mEmailFile);
+            System.out.println("[QUEEN][INFO] >> No emails obtained. Looking for them here: " + mEmailFile);
         }
+    }
+
+    void storeDroneInfo(String name, int connection_id) {
+        new Thread() {
+            public void run() {
+                while (true) {
+                    try {
+                        Statement tmpStatement1 = mySQLConnection.createStatement();
+                        ResultSet res1 = tmpStatement1.executeQuery("SELECT id FROM drones WHERE name = '" + name + "'");
+                        if (res1.next()) {
+                            Statement tmpStatement2 = mySQLConnection.createStatement();
+                            tmpStatement2.executeUpdate("UPDATE drones SET connection_id=" + connection_id + " WHERE name='" + name + "'");
+                            tmpStatement2.close();
+                        } else {
+                            Statement tmpStatement3 = mySQLConnection.createStatement();
+                            tmpStatement3.executeUpdate("INSERT INTO drones(`id`, `name`, `connection_id`) VALUES (null,'" + name + "'," + connection_id + ")");
+                            tmpStatement3.close();
+                        }
+                        tmpStatement1.close();
+                        res1.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }.start();
     }
 
     String retrieveWorkLoad(int droneThreads) {
         StringBuilder payload = new StringBuilder("");
+        StringBuilder idString = new StringBuilder("");
         try {
-            ResultSet res = mStatement.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE LIMIT " + droneThreads);
+            ResultSet res = mStatement.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE LIMIT " + droneThreads + " FOR UPDATE");
             String imapPass = config.getJSONObject("queen").getString("imap_password");
             while (res.next()) {
                 payload.append(res.getString(2) + imapPass + "\n");
-                Statement tmpStatement = mySQLConnection.createStatement();
-                tmpStatement.executeUpdate("UPDATE emails SET queue=FALSE, processing=TRUE WHERE id=" + res.getString(1));
-                tmpStatement.closeOnCompletion();
+                if (res.isFirst()) {
+                    idString.append(" id=" + res.getString(1));
+                } else {
+                    idString.append(" OR id=" + res.getString(1));
+                }
             }
+            Statement tmpStatement = mySQLConnection.createStatement();
+            tmpStatement.executeUpdate("UPDATE emails SET queue=FALSE, processing=TRUE WHERE" + idString.toString());
+            tmpStatement.close();
+            res.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }

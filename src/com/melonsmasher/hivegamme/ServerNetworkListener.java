@@ -33,6 +33,7 @@ class ServerNetworkListener extends Listener {
             Packets.Packet01JoinResponse response = new Packets.Packet01JoinResponse();
             response.a = true;
             System.out.println("[" + ((Packets.Packet00JoinRequest) o).name + "][MSG] >> Has requested access.");
+            mQueen.storeDroneInfo(((Packets.Packet00JoinRequest) o).name, connection.getID());
             connection.sendTCP(response);
         } else if (o instanceof Packets.Packet02Ping) {
             Packets.Packet03Pong response = new Packets.Packet03Pong();
