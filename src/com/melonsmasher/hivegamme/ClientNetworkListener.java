@@ -46,6 +46,10 @@ class ClientNetworkListener extends Listener {
         } else if (o instanceof Packets.Packet07PayloadResponse) {
             System.out.println("[DRONE][INFO] >> Obtained workload from the Queen.");
             mDrone.setBusy(true);
+            System.out.println(((Packets.Packet07PayloadResponse) o).payload);
+        } else if (o instanceof Packets.Packet08NoWorkAvailable) {
+            System.out.println("[QUEEN][MSG] >> No work for you right now.");
+            mDrone.setBusy(false);
         }
     }
 

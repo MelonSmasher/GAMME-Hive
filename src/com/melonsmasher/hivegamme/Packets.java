@@ -41,19 +41,10 @@ class Packets {
     static class Packet07PayloadResponse {
         String name = "Drone";
         String conf;
-        String targets;
+        String payload;
     }
 
-    static class Packet08ThreadCountRequest {
+    static class Packet08NoWorkAvailable {
     }
 
-    static class Packet09ThreadCountResponse {
-        String name = "Drone";
-        int count;
-    }
-
-    static class Packet10ProgressUpdate {
-        String name = "Drone";
-        int percent;
-    }
 }
