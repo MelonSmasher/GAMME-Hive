@@ -250,7 +250,7 @@ public class Queen {
         StringBuilder ids = new StringBuilder("");
         try {
             Statement selectAddresses = mySQLConnection.createStatement();
-            ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails ORDER BY pass DESC LIMIT " + droneThreads + " FOR UPDATE");
+            ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails ORDER BY pass ASC LIMIT " + droneThreads + " FOR UPDATE");
             System.out.println("[QUEEN][DRONE][" + name + "] >> Gathering target email addresses.");
             if (res.next()) {
                 res.beforeFirst();
@@ -271,7 +271,7 @@ public class Queen {
             }
             String mPayload = payload.toString();
             Statement getServer = mySQLConnection.createStatement();
-            ResultSet serverRes = getServer.executeQuery("SELECT * FROM servers ORDER BY current_jobs DESC ");
+            ResultSet serverRes = getServer.executeQuery("SELECT * FROM servers ORDER BY current_jobs ASC ");
             String jobName = "";
             System.out.println("[QUEEN][DRONE][" + name + "] >> Selecting server.");
             if (!mPayload.isEmpty()) {
