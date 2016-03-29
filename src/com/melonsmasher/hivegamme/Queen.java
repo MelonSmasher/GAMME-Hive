@@ -18,18 +18,35 @@ public class Queen {
 
     private int mPortTCP = 25851, mPortUDP = 25852;
     private String mGmailKey;
-    private Server mServer;
+    private boolean started = true;
     private Connection mySQLConnection = null;
     private Statement mStatement = null;
     private JSONObject config;
 
     private Queen() {
 
-        init();
+        System.out.println("[QUEEN][HIVE][INFO] >> Loading configuration.");
+        loadConfig(true);
+        // Start thread that reloads the configuration every minute
+        new Thread() {
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(60000);
+                        loadConfig(false);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if (!started) {
+                        break;
+                    }
+                }
+            }
+        }.start();
+
         initSQL();
 
         System.out.println("[QUEEN][HIVE][INFO] >> Reading emails and servers...");
-
         // Look for new addresses every 10 seconds
         new Thread() {
             public void run() {
@@ -38,9 +55,12 @@ public class Queen {
                         mGmailKey = readGmailKey();
                         readInServers();
                         readInEmails();
-                        Thread.sleep(10000);
+                        Thread.sleep(30000);
                     } catch (Exception e) {
                         e.printStackTrace();
+                    }
+                    if (!started) {
+                        break;
                     }
                 }
             }
@@ -48,7 +68,7 @@ public class Queen {
 
         System.out.println("[QUEEN][HIVE][INFO] >> Initializing server instance...");
 
-        mServer = new Server(163840, 20480);
+        Server mServer = new Server(163840, 20480);
         ServerNetworkListener mListener = new ServerNetworkListener(this);
         mServer.addListener(mListener);
 
@@ -59,7 +79,7 @@ public class Queen {
             System.out.println("[QUEEN][HIVE][ERROR] >> Failed to bind to TCP: " + mPortTCP + " and UDP: " + mPortUDP);
         }
 
-        registerPackets();
+        Util.registerPackets(mServer.getKryo());
 
         try {
             mServer.start();
@@ -71,46 +91,33 @@ public class Queen {
         System.out.println("[QUEEN][HIVE][INFO] >> Server started and listening on TCP: " + mPortTCP + " and UDP: " + mPortUDP);
     }
 
-    private void registerPackets() {
-        Kryo mKryo = mServer.getKryo();
-        mKryo.register(Packets.Packet00JoinRequest.class);
-        mKryo.register(Packets.Packet01JoinResponse.class);
-        mKryo.register(Packets.Packet02Ping.class);
-        mKryo.register(Packets.Packet03Pong.class);
-        mKryo.register(Packets.Packet04Message.class);
-        mKryo.register(Packets.Packet05GammeLog.class);
-        mKryo.register(Packets.Packet06PayloadRequest.class);
-        mKryo.register(Packets.Packet07PayloadResponse.class);
-        mKryo.register(Packets.Packet08NoWorkAvailable.class);
-        mKryo.register(Packets.Packet09NotifyBusy.class);
-        mKryo.register(Packets.Packet10NotifyFree.class);
-        mKryo.register(Packets.Packet11ProgressUpdate.class);
-        mKryo.register(Packets.Packet12JobComplete.class);
-    }
-
-    private void init() {
-        System.out.println("[QUEEN][HIVE][INFO] >> Loading configuration.");
+    private void loadConfig(boolean init) {
         String configFilePath = Util.defaultConfDir() + "conf.json";
-        String configStr = "";
         try {
-            configStr = Util.readFile(configFilePath, Charset.defaultCharset());
+            String configStr = Util.readFile(configFilePath, Charset.defaultCharset());
+            config = new JSONObject(configStr);
+            config = config.getJSONObject("queen");
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("[QUEEN][HIVE][ERROR] >> Could not find configuration file: " + configFilePath);
-            System.exit(3);
+            if (init) {
+                System.exit(3);
+            }
         }
-        config = new JSONObject(configStr);
-        mPortTCP = config.getJSONObject("queen").getInt("tcp_port");
-        mPortUDP = config.getJSONObject("queen").getInt("udp_port");
+        // Load config into global vars
+        mPortTCP = config.getInt("tcp_port");
+        mPortUDP = config.getInt("udp_port");
+
     }
 
     private void initSQL() {
         try {
-            String mSQLHost = config.getJSONObject("sql").getString("host");
-            int mSQLPort = config.getJSONObject("sql").getInt("port");
-            String mSQLUser = config.getJSONObject("sql").getString("user");
-            String mSQLPass = config.getJSONObject("sql").getString("password");
-            String mSQLDB = config.getJSONObject("sql").getString("db");
+            String mSQLHost = config.getJSONObject("mysql").getString("host");
+            int mSQLPort = config.getJSONObject("mysql").getInt("port");
+            String mSQLUser = config.getJSONObject("mysql").getString("user");
+            String mSQLPass = config.getJSONObject("mysql").getString("password");
+            String mSQLDB = config.getJSONObject("mysql").getString("db");
+
             String url = "jdbc:mysql://" + mSQLHost + ":" + String.valueOf(mSQLPort) + "/" + mSQLDB;
             mySQLConnection = DriverManager.getConnection(url, mSQLUser, mSQLPass);
             mStatement = mySQLConnection.createStatement();
@@ -131,8 +138,8 @@ public class Queen {
         }
     }
 
-    void readInEmails() {
-        String mEmailFile = config.getJSONObject("queen").getString("email_list");
+    private void readInEmails() {
+        String mEmailFile = config.getString("email_list");
         int count = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(mEmailFile))) {
             for (String line; (line = br.readLine()) != null; ) {
@@ -154,8 +161,8 @@ public class Queen {
         }
     }
 
-    void readInServers() {
-        String mServersFile = config.getJSONObject("queen").getString("server_list");
+    private void readInServers() {
+        String mServersFile = config.getString("server_list");
         try (BufferedReader br = new BufferedReader(new FileReader(mServersFile))) {
             for (String line; (line = br.readLine()) != null; ) {
                 try {
@@ -232,7 +239,7 @@ public class Queen {
     }
 
     private String readGmailKey() {
-        String mJsonKey = config.getJSONObject("queen").getString("service_account_json_path");
+        String mJsonKey = config.getString("service_account_key_path");
         String key = null;
         try {
             key = Util.readFile(mJsonKey, Charset.defaultCharset());
@@ -242,12 +249,12 @@ public class Queen {
         return key;
     }
 
-
-    void sendWorkLoad(int droneThreads, com.esotericsoftware.kryonet.Connection conn, String name) {
+    void sendWorkLoad(com.esotericsoftware.kryonet.Connection conn, String name) {
         System.out.println("[QUEEN][DRONE][" + name + "] >> Constructing workload.");
         StringBuilder payload = new StringBuilder("");
         StringBuilder idString = new StringBuilder("");
         StringBuilder ids = new StringBuilder("");
+        int droneThreads = config.getJSONObject("gamme").getInt("threads");
         try {
             Statement selectAddresses = mySQLConnection.createStatement();
             ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails ORDER BY pass ASC LIMIT " + droneThreads + " FOR UPDATE");
@@ -255,9 +262,9 @@ public class Queen {
             if (res.next()) {
                 res.beforeFirst();
                 System.out.println("[QUEEN][DRONE][" + name + "] >> Building payload.");
-                String imapPass = config.getJSONObject("queen").getString("imap_password");
+
                 while (res.next()) {
-                    payload.append(res.getString(2) + imapPass + "\n");
+                    payload.append(res.getString(2) + "\n");
                     if (res.isFirst()) {
                         idString.append(" id=" + res.getString(1));
                         ids.append(res.getString(1));
@@ -302,10 +309,21 @@ public class Queen {
                     updateServerJobs.close();
                 }
                 Packets.Packet07PayloadResponse packet = new Packets.Packet07PayloadResponse();
+
                 packet.gmail_key = mGmailKey;
-                packet.payload = mPayload;
+                packet.payload = mPayload.trim();
                 packet.job_name = jobName;
+                packet.threads = droneThreads;
+                packet.google_apps_admin = config.getJSONObject("gamme").getString("google_apps_admin");
+                packet.retry_count = config.getJSONObject("gamme").getInt("retry_count");
+                packet.imap_password = config.getJSONObject("gamme").getString("imap_password");
+                packet.imap_server_type = config.getJSONObject("gamme").getString("imap_server_type");
+                packet.imap_port = config.getJSONObject("gamme").getInt("imap_port");
+                packet.imap_security = config.getJSONObject("gamme").getBoolean("imap_security");
+                packet.google_domain = config.getJSONObject("gamme").getString("google_domain");
+                packet.exclude_top_level_folders = config.getJSONObject("gamme").getJSONArray("exclude_top_level_folders").join(",");
                 packet.server = serverRes.getString(2);
+
                 conn.sendTCP(packet);
                 System.out.println("[QUEEN][DRONE][" + name + "] >> Workload has shipped!");
             } else {

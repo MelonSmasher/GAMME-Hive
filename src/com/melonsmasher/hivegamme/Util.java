@@ -1,5 +1,7 @@
 package com.melonsmasher.hivegamme;
 
+import com.esotericsoftware.kryo.Kryo;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -33,6 +35,23 @@ class Util {
         }
     }
 
+    static void registerPackets(Kryo lKryo) {
+        lKryo.register(Packets.Packet00JoinRequest.class);
+        lKryo.register(Packets.Packet01JoinResponse.class);
+        lKryo.register(Packets.Packet02Ping.class);
+        lKryo.register(Packets.Packet03Pong.class);
+        lKryo.register(Packets.Packet04Message.class);
+        lKryo.register(Packets.Packet05GammeLog.class);
+        lKryo.register(Packets.Packet06PayloadRequest.class);
+        lKryo.register(Packets.Packet07PayloadResponse.class);
+        lKryo.register(Packets.Packet08NoWorkAvailable.class);
+        lKryo.register(Packets.Packet09NotifyBusy.class);
+        lKryo.register(Packets.Packet10NotifyFree.class);
+        lKryo.register(Packets.Packet11ProgressUpdate.class);
+        lKryo.register(Packets.Packet12JobComplete.class);
+        lKryo.register(Packets.Packet13GammeLogMsg.class);
+        lKryo.register(Packets.Packet14GammeLogErr.class);
+    }
 
     static boolean isWindows() {
         String OS = System.getProperty("os.name").toLowerCase();

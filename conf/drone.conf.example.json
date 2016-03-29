@@ -1,0 +1,10 @@
+{
+  "drone": {
+    "tcp_port": 25801,
+    "udp_port": 25802,
+    "queen_address": "localhost",
+    "job_dir": "C:\\Program Files\\GAMME Hive\\jobs",
+    "timeout": 5000,
+    "gamme_location": "C:\\Program Files (x86)\\Google\\Google Apps Migration\\ExchangeMigration.exe"
+  }
+}

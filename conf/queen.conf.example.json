@@ -1,0 +1,30 @@
+{
+  "queen": {
+    "tcp_port": 25801,
+    "udp_port": 25802,
+    "server_list": "/etc/gamme_hive/servers.list",
+    "email_list": "/etc/gamme_hive/emails.list",
+    "service_account_key_path": "/etc/gamme_hive/privatekey.json",
+    "mysql": {
+      "host": "localhost",
+      "port": 3306,
+      "password": "StrongPassword",
+      "user": "queen",
+      "db": "hive"
+    },
+    "gamme": {
+      "google_apps_admin": "sysadmin@domain.tld",
+      "retry_count": 5,
+      "imap_security": false,
+      "imap_port": 143,
+      "threads": 50,
+      "imap_password": "StrongPassword",
+      "imap_server_type": "courier",
+      "google_domain": "domain.tld",
+      "exclude_top_level_folders" : [
+        "BULK",
+        "SPAM"
+      ]
+    }
+  }
+}

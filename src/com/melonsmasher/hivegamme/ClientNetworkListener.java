@@ -9,11 +9,9 @@ import com.esotericsoftware.kryonet.Listener;
  */
 class ClientNetworkListener extends Listener {
 
-    private Client mClient;
     private Drone mDrone;
 
-    ClientNetworkListener(Client client, Drone drone) {
-        this.mClient = client;
+    ClientNetworkListener(Drone drone) {
         this.mDrone = drone;
     }
 
@@ -45,12 +43,12 @@ class ClientNetworkListener extends Listener {
             System.out.println("[QUEEN][MSG] >> " + ((Packets.Packet03Pong) o).m);
         } else if (o instanceof Packets.Packet07PayloadResponse) {
             System.out.println("[DRONE][INFO] >> Obtained workload from the Queen.");
-            mDrone.setBusy(true);
             Packets.Packet07PayloadResponse packet = (Packets.Packet07PayloadResponse) o;
             mDrone.beginWork(packet);
         } else if (o instanceof Packets.Packet08NoWorkAvailable) {
             System.out.println("[QUEEN][MSG] >> No work, sit tight.");
             mDrone.setBusy(false);
+            mDrone.setWaitingForWorkResponse(false);
         }
     }
 

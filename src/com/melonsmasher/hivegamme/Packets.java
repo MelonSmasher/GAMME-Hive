@@ -35,14 +35,22 @@ class Packets {
 
     static class Packet06PayloadRequest {
         String name = "Drone";
-        int threads;
     }
 
     static class Packet07PayloadResponse {
-        String gmail_key;
+        String job_name;
         String payload;
         String server;
-        String job_name;
+        String google_apps_admin;
+        int retry_count;
+        boolean imap_security;
+        int imap_port;
+        String imap_password;
+        String imap_server_type;
+        String gmail_key;
+        String google_domain;
+        String exclude_top_level_folders;
+        int threads;
     }
 
     static class Packet08NoWorkAvailable {
@@ -68,4 +76,13 @@ class Packets {
         String job_name;
     }
 
+    static class Packet13GammeLogMsg {
+        String name = "Drone";
+        String text;
+    }
+
+    static class Packet14GammeLogErr {
+        String name = "Drone";
+        String text;
+    }
 }

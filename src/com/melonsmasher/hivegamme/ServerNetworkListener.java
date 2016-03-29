@@ -8,7 +8,7 @@ import com.esotericsoftware.kryonet.Listener;
  */
 class ServerNetworkListener extends Listener {
 
-    Queen mQueen;
+    private Queen mQueen;
 
     ServerNetworkListener(Queen queen) {
         this.mQueen = queen;
@@ -44,7 +44,7 @@ class ServerNetworkListener extends Listener {
         } else if (o instanceof Packets.Packet06PayloadRequest) {
             new Thread() {
                 public void run() {
-                    mQueen.sendWorkLoad(((Packets.Packet06PayloadRequest) o).threads, connection, ((Packets.Packet06PayloadRequest) o).name);
+                    mQueen.sendWorkLoad(connection, ((Packets.Packet06PayloadRequest) o).name);
                 }
             }.start();
         } else if (o instanceof Packets.Packet09NotifyBusy) {
