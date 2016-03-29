@@ -7,8 +7,9 @@
     "db": "gamme_hive"
   },
   "queen": {
-    "service_account_json_path": "/etc/hive/privatekey.json",
-    "email_list": "/etc/hive/emails.csv",
+    "service_account_json_path": "/etc/gamme_hive/privatekey.json",
+    "email_list": "/etc/gamme_hive/emails.csv",
+    "server_list": "/etc/gamme_hive/servers.csv",
     "imap_password": "IMAPMasterPassword",
     "tcp_port": 25801,
     "udp_port": 25802

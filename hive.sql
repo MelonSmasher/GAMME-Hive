@@ -9,9 +9,7 @@ CREATE TABLE emails
 (
   id INT(11) PRIMARY KEY NOT NULL AUTO_INCREMENT,
   email VARCHAR(255) NOT NULL,
-  progress INT(11) DEFAULT '0',
   processing TINYINT(1) DEFAULT '0',
-  processed TINYINT(1) DEFAULT '0',
   queue TINYINT(1) DEFAULT '1',
   pass INT(11) DEFAULT '0' NOT NULL
 );
