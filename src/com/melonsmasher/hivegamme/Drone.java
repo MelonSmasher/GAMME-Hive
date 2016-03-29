@@ -16,7 +16,7 @@ import java.net.UnknownHostException;
 public class Drone {
 
     private int mPortTCP = 25801, mPortUDP = 25802, mTimeOut = 5000;
-    private String mServerHost = "localhost";
+    private String mServerHost = "localhost", mWorkDirPAth;
     private Client mClient;
     private boolean busy = false, started = true;
     private String mName = "Drone";
@@ -80,6 +80,7 @@ public class Drone {
         mKryo.register(Packets.Packet09NotifyBusy.class);
         mKryo.register(Packets.Packet10NotifyFree.class);
         mKryo.register(Packets.Packet11ProgressUpdate.class);
+        mKryo.register(Packets.Packet12JobComplete.class);
     }
 
     private void requestWork() {
@@ -90,7 +91,7 @@ public class Drone {
                     if (isBusy()) {
                         System.out.println("[DRONE][INFO] >> Working....");
                         try {
-                            Thread.sleep(5000);
+                            Thread.sleep(1000);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -103,7 +104,7 @@ public class Drone {
                         mClient.sendTCP(packet);
                     }
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(1000);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -111,6 +112,34 @@ public class Drone {
                         break;
                     }
                 }
+            }
+        }.start();
+    }
+
+    // Fire up worker thread
+    void beginWork(Packets.Packet07PayloadResponse packet) {
+        System.out.println("[DRONE][INFO] >> Initiating worker thread.");
+        new Thread() {
+            public void run() {
+                System.out.println("[DRONE][INFO] >> Work thread started job " + packet.job_name + ".");
+               // System.out.println(packet.payload);
+
+                try {
+                    Thread.sleep(3000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println("[DRONE][INFO] >> Job " + packet.job_name + " is complete!");
+
+                // Notify the queen that the job is done
+                Packets.Packet12JobComplete completionPacket = new Packets.Packet12JobComplete();
+                completionPacket.name = mName;
+                completionPacket.job_name = packet.job_name;
+                completionPacket.server = packet.server;
+                mClient.sendUDP(completionPacket);
+
+                setBusy(false);
             }
         }.start();
     }
@@ -158,8 +187,9 @@ public class Drone {
         mPortUDP = config.getJSONObject("drone").getInt("udp_port");
         mTimeOut = config.getJSONObject("drone").getInt("timeout");
         mServerHost = config.getJSONObject("drone").getString("queen_address");
+        mWorkDirPAth = config.getJSONObject("drone").getString("working_dir");
 
-        File workDir = new File(config.getJSONObject("drone").getString("working_dir"));
+        File workDir = new File(mWorkDirPAth);
         if (!workDir.exists()) {
             try {
                 workDir.mkdir();

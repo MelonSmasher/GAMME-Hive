@@ -85,6 +85,7 @@ public class Queen {
         mKryo.register(Packets.Packet09NotifyBusy.class);
         mKryo.register(Packets.Packet10NotifyFree.class);
         mKryo.register(Packets.Packet11ProgressUpdate.class);
+        mKryo.register(Packets.Packet12JobComplete.class);
     }
 
     private void init() {
@@ -197,6 +198,39 @@ public class Queen {
         }.start();
     }
 
+    void completeJob(String job_name, String server) {
+        new Thread() {
+            public void run() {
+                try {
+                    System.out.println("[QUEEN][JOB][" + job_name + "] >> Progress: 100%! Complete!");
+                    Statement statement = mySQLConnection.createStatement();
+                    statement.executeUpdate("UPDATE jobs SET `completed`=TRUE, `progress`=100 WHERE `job_name`='" + job_name + "'");
+                    statement.closeOnCompletion();
+                    statement.executeUpdate("UPDATE servers SET `current_jobs`=current_jobs - 1 WHERE `address`='" + server + "'");
+                    statement.closeOnCompletion();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }.start();
+    }
+
+    void updateJobProgress(String job_name, int percent) {
+        new Thread() {
+            public void run() {
+                try {
+                    System.out.println("[QUEEN][JOB][" + job_name + "] >> Progress: " + percent + "%");
+                    Statement statement = mySQLConnection.createStatement();
+                    statement.executeUpdate("UPDATE jobs SET `progress`=" + percent + " WHERE `job_name`=" + job_name);
+                    statement.closeOnCompletion();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
     private String readGmailKey() {
         String mJsonKey = config.getJSONObject("queen").getString("service_account_json_path");
         String key = null;
@@ -216,7 +250,7 @@ public class Queen {
         StringBuilder ids = new StringBuilder("");
         try {
             Statement selectAddresses = mySQLConnection.createStatement();
-            ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE ORDER BY pass DESC LIMIT " + droneThreads + " FOR UPDATE");
+            ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails ORDER BY pass DESC LIMIT " + droneThreads + " FOR UPDATE");
             System.out.println("[QUEEN][DRONE][" + name + "] >> Gathering target email addresses.");
             if (res.next()) {
                 res.beforeFirst();
@@ -251,7 +285,10 @@ public class Queen {
                     jobName = droneInfo.getString(2) + "-" + String.valueOf(System.currentTimeMillis());
                     System.out.println("[QUEEN][DRONE][" + name + "] >> New Job is being created: " + jobName);
                     Statement createJob = mySQLConnection.createStatement();
-                    int jobID = createJob.executeUpdate("INSERT INTO jobs(`id`,`job_name`,`drone_id`) VALUES (NULL, '" + jobName + "', " + droneID + ")", Statement.RETURN_GENERATED_KEYS);
+                    createJob.executeUpdate("INSERT INTO jobs(`id`,`job_name`,`drone_id`) VALUES (NULL, '" + jobName + "', " + droneID + ")", Statement.RETURN_GENERATED_KEYS);
+                    ResultSet generatedKeys = createJob.getGeneratedKeys();
+                    generatedKeys.first();
+                    int jobID = generatedKeys.getInt(1);
                     System.out.println("[QUEEN][DRONE][" + name + "] >> New Job created with ID: " + jobID);
                     Statement createEmailJob = mySQLConnection.createStatement();
                     for (String id : ids.toString().split(",")) {

@@ -48,7 +48,15 @@ class ServerNetworkListener extends Listener {
                 }
             }.start();
         } else if (o instanceof Packets.Packet09NotifyBusy) {
+
         } else if (o instanceof Packets.Packet10NotifyFree) {
+
+        } else if (o instanceof Packets.Packet11ProgressUpdate) {
+            Packets.Packet11ProgressUpdate packet = (Packets.Packet11ProgressUpdate) o;
+            mQueen.updateJobProgress(packet.job_name, packet.progress);
+        } else if (o instanceof Packets.Packet12JobComplete) {
+            Packets.Packet12JobComplete packet = (Packets.Packet12JobComplete) o;
+            mQueen.completeJob(packet.job_name, packet.server);
         }
     }
 

@@ -58,7 +58,14 @@ class Packets {
 
     static class Packet11ProgressUpdate {
         String name;
+        String job_name;
         int progress;
+    }
+
+    static class Packet12JobComplete {
+        String name;
+        String server;
+        String job_name;
     }
 
 }
