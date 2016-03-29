@@ -39,12 +39,26 @@ class Packets {
     }
 
     static class Packet07PayloadResponse {
-        String name = "Drone";
-        String conf;
+        String gmail_key;
         String payload;
+        String server;
+        String job_name;
     }
 
     static class Packet08NoWorkAvailable {
+    }
+
+    static class Packet09NotifyBusy {
+        String name;
+    }
+
+    static class Packet10NotifyFree {
+        String name;
+    }
+
+    static class Packet11ProgressUpdate {
+        String name;
+        int progress;
     }
 
 }

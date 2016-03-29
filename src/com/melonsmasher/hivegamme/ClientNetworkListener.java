@@ -35,9 +35,9 @@ class ClientNetworkListener extends Listener {
         if (o instanceof Packets.Packet01JoinResponse) {
             Packets.Packet01JoinResponse response = (Packets.Packet01JoinResponse) o;
             if (response.a) {
-                System.out.println("[QUEEN][INFO] >> Access granted!");
+                System.out.println("[QUEEN][INFO] >> Welcome!");
             } else {
-                System.out.println("[QUEEN][INFO] >> Access denied!");
+                System.out.println("[QUEEN][INFO] >> Your join request has been denied!");
                 connection.close();
                 System.exit(2);
             }
@@ -45,10 +45,10 @@ class ClientNetworkListener extends Listener {
             System.out.println("[QUEEN][MSG] >> " + ((Packets.Packet03Pong) o).m);
         } else if (o instanceof Packets.Packet07PayloadResponse) {
             System.out.println("[DRONE][INFO] >> Obtained workload from the Queen.");
-            mDrone.setBusy(true);
             System.out.println(((Packets.Packet07PayloadResponse) o).payload);
+            mDrone.setBusy(true);
         } else if (o instanceof Packets.Packet08NoWorkAvailable) {
-            System.out.println("[QUEEN][MSG] >> No work for you right now.");
+            System.out.println("[QUEEN][MSG] >> No work, sit tight.");
             mDrone.setBusy(false);
         }
     }

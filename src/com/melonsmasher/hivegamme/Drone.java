@@ -7,7 +7,6 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Scanner;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -19,8 +18,8 @@ public class Drone {
     private int mPortTCP = 25801, mPortUDP = 25802, mTimeOut = 5000;
     private String mServerHost = "localhost";
     private Client mClient;
-    private boolean busy = false, init = true;
-    public String mName = "Drone";
+    private boolean busy = false, started = true;
+    private String mName = "Drone";
     private JSONObject config;
 
     private Drone() {
@@ -28,7 +27,7 @@ public class Drone {
         init();
 
         System.out.println("[DRONE][INFO] >> Initializing client instance...");
-        mClient = new Client();
+        mClient = new Client(81920, 20480);
         ClientNetworkListener mListener = new ClientNetworkListener(mClient, this);
         mClient.addListener(mListener);
         registerPackets();
@@ -57,23 +56,12 @@ public class Drone {
             System.out.println("[DRONE][ERROR] >> Failed to connect to Queen! TCP: " + mServerHost + ":" + mPortTCP + " - UDP: " + mServerHost + ":" + mPortUDP);
         }
 
+
+        requestWork();
+
         while (true) {
-            if (!getBusy()) {
-                if (!init) {
-                    try {
-                        Thread.sleep(10000);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                setBusy(true);
-                init = false;
-                int threads = config.getJSONObject("gamme").getInt("threads");
-                Packets.Packet06PayloadRequest packet = new Packets.Packet06PayloadRequest();
-                packet.name = mName;
-                packet.threads = threads;
-                System.out.println("[DRONE][INFO] >> Requesting work.");
-                mClient.sendUDP(packet);
+            if (!started) {
+                break;
             }
         }
     }
@@ -89,6 +77,42 @@ public class Drone {
         mKryo.register(Packets.Packet06PayloadRequest.class);
         mKryo.register(Packets.Packet07PayloadResponse.class);
         mKryo.register(Packets.Packet08NoWorkAvailable.class);
+        mKryo.register(Packets.Packet09NotifyBusy.class);
+        mKryo.register(Packets.Packet10NotifyFree.class);
+        mKryo.register(Packets.Packet11ProgressUpdate.class);
+    }
+
+    private void requestWork() {
+        // Work manager thread
+        new Thread() {
+            public void run() {
+                while (true) {
+                    if (isBusy()) {
+                        System.out.println("[DRONE][INFO] >> Working....");
+                        try {
+                            Thread.sleep(5000);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        int threads = config.getJSONObject("gamme").getInt("threads");
+                        Packets.Packet06PayloadRequest packet = new Packets.Packet06PayloadRequest();
+                        packet.name = mName;
+                        packet.threads = threads;
+                        System.out.println("[DRONE][INFO] >> Requesting work.");
+                        mClient.sendTCP(packet);
+                    }
+                    try {
+                        Thread.sleep(5000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if (!started) {
+                        break;
+                    }
+                }
+            }
+        }.start();
     }
 
     private void sendPing() {
@@ -111,9 +135,7 @@ public class Drone {
         return name;
     }
 
-    private void init() {
-
-        System.out.println("[DRONE][INFO] >> Loading configuration.");
+    private void loadConfig() {
         String configFilePath = Util.defaultConfDir() + "conf.json";
         String configStr = "";
         try {
@@ -124,6 +146,13 @@ public class Drone {
             System.exit(3);
         }
         config = new JSONObject(configStr);
+    }
+
+    private void init() {
+
+        System.out.println("[DRONE][INFO] >> Loading configuration.");
+
+        loadConfig();
 
         mPortTCP = config.getJSONObject("drone").getInt("tcp_port");
         mPortUDP = config.getJSONObject("drone").getInt("udp_port");
@@ -144,7 +173,7 @@ public class Drone {
         this.busy = status;
     }
 
-    boolean getBusy() {
+    boolean isBusy() {
         return this.busy;
     }
 

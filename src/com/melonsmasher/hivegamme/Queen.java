@@ -9,11 +9,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * Created by melon on 3/26/16.
@@ -21,6 +17,7 @@ import java.sql.SQLException;
 public class Queen {
 
     private int mPortTCP = 25851, mPortUDP = 25852;
+    private String mGmailKey;
     private Server mServer;
     private Connection mySQLConnection = null;
     private Statement mStatement = null;
@@ -31,13 +28,16 @@ public class Queen {
         init();
         initSQL();
 
-        System.out.println("[QUEEN][INFO] >> Reading new emails into DB...");
+        System.out.println("[QUEEN][HIVE][INFO] >> Reading emails and servers...");
+
+        // Look for new addresses every 10 seconds
         new Thread() {
             public void run() {
                 while (true) {
                     try {
+                        mGmailKey = readGmailKey();
+                        readInServers();
                         readInEmails();
-                        // Look for new addresses every 10 seconds
                         Thread.sleep(10000);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -46,9 +46,9 @@ public class Queen {
             }
         }.start();
 
-        System.out.println("[QUEEN][INFO] >> Initializing server instance...");
+        System.out.println("[QUEEN][HIVE][INFO] >> Initializing server instance...");
 
-        mServer = new Server();
+        mServer = new Server(163840, 20480);
         ServerNetworkListener mListener = new ServerNetworkListener(this);
         mServer.addListener(mListener);
 
@@ -56,7 +56,7 @@ public class Queen {
             mServer.bind(mPortTCP, mPortUDP);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Failed to bind to TCP: " + mPortTCP + " and UDP: " + mPortUDP);
+            System.out.println("[QUEEN][HIVE][ERROR] >> Failed to bind to TCP: " + mPortTCP + " and UDP: " + mPortUDP);
         }
 
         registerPackets();
@@ -65,10 +65,10 @@ public class Queen {
             mServer.start();
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Failed to start server!");
+            System.out.println("[QUEEN][HIVE][ERROR] >> Failed to start server!");
         }
 
-        System.out.println("[QUEEN][INFO] >> Server started and listening on TCP: " + mPortTCP + " and UDP: " + mPortUDP);
+        System.out.println("[QUEEN][HIVE][INFO] >> Server started and listening on TCP: " + mPortTCP + " and UDP: " + mPortUDP);
     }
 
     private void registerPackets() {
@@ -82,17 +82,20 @@ public class Queen {
         mKryo.register(Packets.Packet06PayloadRequest.class);
         mKryo.register(Packets.Packet07PayloadResponse.class);
         mKryo.register(Packets.Packet08NoWorkAvailable.class);
+        mKryo.register(Packets.Packet09NotifyBusy.class);
+        mKryo.register(Packets.Packet10NotifyFree.class);
+        mKryo.register(Packets.Packet11ProgressUpdate.class);
     }
 
     private void init() {
-        System.out.println("[QUEEN][INFO] >> Loading configuration.");
+        System.out.println("[QUEEN][HIVE][INFO] >> Loading configuration.");
         String configFilePath = Util.defaultConfDir() + "conf.json";
         String configStr = "";
         try {
             configStr = Util.readFile(configFilePath, Charset.defaultCharset());
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Could not find configuration file: " + configFilePath);
+            System.out.println("[QUEEN][HIVE][ERROR] >> Could not find configuration file: " + configFilePath);
             System.exit(3);
         }
         config = new JSONObject(configStr);
@@ -115,36 +118,60 @@ public class Queen {
             if (res.next()) {
                 version = ": " + res.getString(1);
             }
-            System.out.println("[QUEEN][INFO] >> Connection to MySQL has been established" + version);
+            System.out.println("[QUEEN][HIVE][INFO] >> Connection to MySQL has been established" + version);
         } catch (SQLException ex) {
             ex.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Could not connect to MySQL. Please check config... Exiting!");
+            System.out.println("[QUEEN][HIVE][ERROR] >> Could not connect to MySQL. Please check config... Exiting!");
             System.exit(4);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][ERROR] >> Could not load MySQL configuration. Please check config... Exiting!");
+            System.out.println("[QUEEN][HIVE][ERROR] >> Could not load MySQL configuration. Please check config... Exiting!");
             System.exit(4);
         }
     }
 
     void readInEmails() {
         String mEmailFile = config.getJSONObject("queen").getString("email_list");
+        int count = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(mEmailFile))) {
             for (String line; (line = br.readLine()) != null; ) {
                 try {
                     ResultSet res = mStatement.executeQuery("SELECT * FROM emails WHERE email='" + line + "'");
                     if (!res.next()) {
-                        System.out.println("[QUEEN][INFO] >> Found new address(" + line + "), adding to queue...");
                         mStatement.executeUpdate("INSERT INTO emails(`id`, `email`) VALUES (null,'" + line + "')");
+                        count++;
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            if (count > 0) {
+                System.out.println("[QUEEN][HIVE][INFO] >> Found new " + count + " new email addresses.");
+            }
+        } catch (IOException e) {
+            System.out.println("[QUEEN][HIVE][INFO] >> No emails obtained. Looking for them here: " + mEmailFile);
+        }
+    }
+
+    void readInServers() {
+        String mServersFile = config.getJSONObject("queen").getString("server_list");
+        try (BufferedReader br = new BufferedReader(new FileReader(mServersFile))) {
+            for (String line; (line = br.readLine()) != null; ) {
+                try {
+                    ResultSet res = mStatement.executeQuery("SELECT * FROM servers WHERE address='" + line + "'");
+                    if (!res.next()) {
+                        System.out.println("[QUEEN][HIVE][INFO] >> Found new server(" + line + ")");
+                        mStatement.executeUpdate("INSERT INTO servers(`id`, `address`) VALUES (null,'" + line + "')");
                     }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }
             }
         } catch (IOException e) {
-            System.out.println("[QUEEN][INFO] >> No emails obtained. Looking for them here: " + mEmailFile);
+            System.out.println("[QUEEN][HIVE][INFO] >> No servers obtained. Looking for them here: " + mServersFile);
         }
     }
+
 
     void storeDroneInfo(String name, int connection_id) {
         new Thread() {
@@ -170,42 +197,89 @@ public class Queen {
         }.start();
     }
 
-    void sendWorkLoad(int droneThreads, com.esotericsoftware.kryonet.Connection conn) {
-        new Thread() {
-            public void run() {
-                StringBuilder payload = new StringBuilder("");
-                StringBuilder idString = new StringBuilder("");
-                try {
-                    ResultSet res = mStatement.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE LIMIT " + droneThreads + " FOR UPDATE");
-                    String imapPass = config.getJSONObject("queen").getString("imap_password");
-                    while (res.next()) {
-                        payload.append(res.getString(2) + imapPass + "\n");
-                        if (res.isFirst()) {
-                            idString.append(" id=" + res.getString(1));
-                        } else {
-                            idString.append(" OR id=" + res.getString(1));
-                        }
-                    }
-                    Statement tmpStatement = mySQLConnection.createStatement();
-                    tmpStatement.executeUpdate("UPDATE emails SET queue=FALSE, processing=TRUE WHERE" + idString.toString());
-                    tmpStatement.close();
-                    res.close();
-                    String mPayload = payload.toString();
-                    if (!mPayload.isEmpty()) {
-                        Packets.Packet07PayloadResponse packet = new Packets.Packet07PayloadResponse();
-                        packet.payload = mPayload;
-                        conn.sendTCP(packet);
+    private String readGmailKey() {
+        String mJsonKey = config.getJSONObject("queen").getString("service_account_json_path");
+        String key = null;
+        try {
+            key = Util.readFile(mJsonKey, Charset.defaultCharset());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return key;
+    }
+
+
+    void sendWorkLoad(int droneThreads, com.esotericsoftware.kryonet.Connection conn, String name) {
+        System.out.println("[QUEEN][DRONE][" + name + "] >> Constructing workload.");
+        StringBuilder payload = new StringBuilder("");
+        StringBuilder idString = new StringBuilder("");
+        StringBuilder ids = new StringBuilder("");
+        try {
+            Statement selectAddresses = mySQLConnection.createStatement();
+            ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails WHERE queue = TRUE ORDER BY pass DESC LIMIT " + droneThreads + " FOR UPDATE");
+            System.out.println("[QUEEN][DRONE][" + name + "] >> Gathering target email addresses.");
+            if (res.next()) {
+                res.beforeFirst();
+                System.out.println("[QUEEN][DRONE][" + name + "] >> Building payload.");
+                String imapPass = config.getJSONObject("queen").getString("imap_password");
+                while (res.next()) {
+                    payload.append(res.getString(2) + imapPass + "\n");
+                    if (res.isFirst()) {
+                        idString.append(" id=" + res.getString(1));
+                        ids.append(res.getString(1));
                     } else {
-                        Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
-                        conn.sendUDP(packet);
+                        idString.append(" OR id=" + res.getString(1));
+                        ids.append(", " + res.getString(1));
                     }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
-                    conn.sendUDP(packet);
                 }
+                Statement tmpStatement = mySQLConnection.createStatement();
+                tmpStatement.executeUpdate("UPDATE emails SET `queue`=FALSE, `processing`=TRUE, `pass`=pass + 1 WHERE " + idString.toString().trim());
             }
-        }.start();
+            String mPayload = payload.toString();
+            Statement getServer = mySQLConnection.createStatement();
+            ResultSet serverRes = getServer.executeQuery("SELECT * FROM servers ORDER BY current_jobs DESC ");
+            String jobName = "";
+            System.out.println("[QUEEN][DRONE][" + name + "] >> Selecting server.");
+            if (!mPayload.isEmpty()) {
+                serverRes.first();
+                System.out.println("[QUEEN][DRONE][" + name + "] >> Server has been selected: " + serverRes.getString(2));
+                Statement getDrone = mySQLConnection.createStatement();
+                ResultSet droneInfo = getDrone.executeQuery("SELECT * from drones where `connection_id`=" + conn.getID());
+                if (droneInfo.next()) {
+                    droneInfo.first();
+                    String droneID = droneInfo.getString(1);
+                    jobName = droneInfo.getString(2) + "-" + String.valueOf(System.currentTimeMillis());
+                    System.out.println("[QUEEN][DRONE][" + name + "] >> New Job is being created: " + jobName);
+                    Statement createJob = mySQLConnection.createStatement();
+                    int jobID = createJob.executeUpdate("INSERT INTO jobs(`id`,`job_name`,`drone_id`) VALUES (NULL, '" + jobName + "', " + droneID + ")", Statement.RETURN_GENERATED_KEYS);
+                    System.out.println("[QUEEN][DRONE][" + name + "] >> New Job created with ID: " + jobID);
+                    Statement createEmailJob = mySQLConnection.createStatement();
+                    for (String id : ids.toString().split(",")) {
+                        id = id.trim();
+                        createEmailJob.executeUpdate("INSERT INTO job_emails(`id`,`job_id`,`email_id`) VALUES (NULL, " + jobID + ", " + id + ")");
+                    }
+                    Statement updateServerJobs = mySQLConnection.createStatement();
+                    int jobCount = serverRes.getInt(3) + 1;
+                    updateServerJobs.executeUpdate("UPDATE servers SET `current_jobs`=" + jobCount + " WHERE id=" + serverRes.getInt(1));
+                    createEmailJob.close();
+                    updateServerJobs.close();
+                }
+                Packets.Packet07PayloadResponse packet = new Packets.Packet07PayloadResponse();
+                packet.gmail_key = mGmailKey;
+                packet.payload = mPayload;
+                packet.job_name = jobName;
+                packet.server = serverRes.getString(2);
+                conn.sendTCP(packet);
+                System.out.println("[QUEEN][DRONE][" + name + "] >> Workload has shipped!");
+            } else {
+                Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
+                conn.sendUDP(packet);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
+            conn.sendUDP(packet);
+        }
     }
 
     public static void main(String[] args) {

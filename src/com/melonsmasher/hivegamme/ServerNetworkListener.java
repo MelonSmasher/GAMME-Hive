@@ -17,13 +17,13 @@ class ServerNetworkListener extends Listener {
     @Override
     public void connected(Connection connection) {
         super.connected(connection);
-        System.out.println("[QUEEN][INFO] >> A drone is joining the hive!");
+        System.out.println("[QUEEN][HIVE][INFO] >> A drone is joining the hive!");
     }
 
     @Override
     public void disconnected(Connection connection) {
         super.disconnected(connection);
-        System.out.println("[QUEEN][INFO] >> A drone has left the hive.");
+        System.out.println("[QUEEN][HIVE][INFO] >> A drone has left the hive.");
     }
 
     @Override
@@ -32,18 +32,23 @@ class ServerNetworkListener extends Listener {
         if (o instanceof Packets.Packet00JoinRequest) {
             Packets.Packet01JoinResponse response = new Packets.Packet01JoinResponse();
             response.a = true;
-            System.out.println("[" + ((Packets.Packet00JoinRequest) o).name + "][MSG] >> Has requested access.");
+            System.out.println("[DRONE][" + ((Packets.Packet00JoinRequest) o).name + "][MSG] >> Reporting in for duty!");
             mQueen.storeDroneInfo(((Packets.Packet00JoinRequest) o).name, connection.getID());
             connection.sendTCP(response);
         } else if (o instanceof Packets.Packet02Ping) {
             Packets.Packet03Pong response = new Packets.Packet03Pong();
-            System.out.println("[" + ((Packets.Packet02Ping) o).name + "][MSG] >> " + ((Packets.Packet02Ping) o).m + ".");
+            System.out.println("[DRONE][" + ((Packets.Packet02Ping) o).name + "][MSG] >> " + ((Packets.Packet02Ping) o).m + ".");
             connection.sendTCP(response);
         } else if (o instanceof Packets.Packet04Message) {
-            System.out.println("[" + ((Packets.Packet04Message) o).name + "][MSG] >> " + ((Packets.Packet04Message) o).text + ".");
+            System.out.println("[DRONE][" + ((Packets.Packet04Message) o).name + "][MSG] >> " + ((Packets.Packet04Message) o).text + ".");
         } else if (o instanceof Packets.Packet06PayloadRequest) {
-            System.out.println("[" + ((Packets.Packet06PayloadRequest) o).name + "][MSG] >> Drone reporting for duty!");
-            mQueen.sendWorkLoad(((Packets.Packet06PayloadRequest) o).threads, connection);
+            new Thread() {
+                public void run() {
+                    mQueen.sendWorkLoad(((Packets.Packet06PayloadRequest) o).threads, connection, ((Packets.Packet06PayloadRequest) o).name);
+                }
+            }.start();
+        } else if (o instanceof Packets.Packet09NotifyBusy) {
+        } else if (o instanceof Packets.Packet10NotifyFree) {
         }
     }
 
