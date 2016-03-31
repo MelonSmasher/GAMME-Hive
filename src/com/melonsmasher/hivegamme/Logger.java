@@ -1,10 +1,5 @@
 package com.melonsmasher.hivegamme;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -14,14 +9,14 @@ import java.util.Date;
 /**
  * Created by melon on 3/30/16.
  */
-class Logger {
+public class Logger {
 
     private boolean canLogToFile = true;
 
     /**
      * Simple logger class
      */
-    Logger() {
+    public Logger() {
     }
 
     /**
@@ -32,7 +27,7 @@ class Logger {
      * @param kind    Kind of message, usually 'ERROR', 'WARN', or 'INFO'.
      * @return A formatted log entry tag, that should prefix a log message.
      */
-    String logTag(String name, String context, String kind) {
+    public String logTag(String name, String context, String kind) {
         String timeStamp = new SimpleDateFormat("MM/dd/yy hh:mm:ss:a").format(new Date());
         return "[" + timeStamp + "]" + "[" + name + "]" + "[" + context + "]" + "[" + kind + "] >> ";
     }
@@ -45,7 +40,7 @@ class Logger {
      * @param kind    Kind of message, usually 'ERROR', 'WARN', or 'INFO'.
      * @param message The log entry message.
      */
-    void logUntaggedToStdOut(String name, String context, String kind, String message) {
+    public void logUntaggedToStdOut(String name, String context, String kind, String message) {
         logToStdOut(logTag(name, context, kind) + message);
     }
 
@@ -54,19 +49,35 @@ class Logger {
      *
      * @param message The log entry message.
      */
-    void logToStdOut(String message) {
+    public void logToStdOut(String message) {
         System.out.println(message);
     }
 
-    boolean getCanLogToFile() {
+    /**
+     * Returns the availability of logging
+     *
+     * @return the availability of logging
+     */
+    public boolean getCanLogToFile() {
         return this.canLogToFile;
     }
 
-    void setCanLogToFile(boolean canLogToFile) {
+    /**
+     * Sets logging availability
+     *
+     * @param canLogToFile logging availability
+     */
+    public void setCanLogToFile(boolean canLogToFile) {
         this.canLogToFile = canLogToFile;
     }
 
-    void logToFile(String logFilePath, String line) {
+    /**
+     * Logs a string to a file
+     *
+     * @param logFilePath The path of the target file
+     * @param line        The log entry
+     */
+    public void logToFile(String logFilePath, String line) {
         if (canLogToFile) {
             if (line != null) line = line + "\n";
 
@@ -83,5 +94,4 @@ class Logger {
             }
         }
     }
-
 }

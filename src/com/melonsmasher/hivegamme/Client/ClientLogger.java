@@ -1,9 +1,13 @@
-package com.melonsmasher.hivegamme;
+package com.melonsmasher.hivegamme.client;
+
+import com.melonsmasher.hivegamme.Logger;
+import com.melonsmasher.hivegamme.Packets;
+import com.melonsmasher.hivegamme.Util;
 
 /**
  * Created by melon on 3/30/16.
  */
-public class ClientLogger extends Logger {
+class ClientLogger extends Logger {
 
     private Drone mDrone;
 

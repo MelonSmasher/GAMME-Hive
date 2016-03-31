@@ -1,14 +1,13 @@
-package com.melonsmasher.hivegamme;
+package com.melonsmasher.hivegamme.server;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.PrintWriter;
+import com.melonsmasher.hivegamme.Logger;
+import com.melonsmasher.hivegamme.Util;
 
 /**
  * Created by melon on 3/30/16.
  */
 
-public class ServerLogger extends Logger {
+class ServerLogger extends Logger {
 
     private Queen mQueen;
 
@@ -17,7 +16,7 @@ public class ServerLogger extends Logger {
      *
      * @param queen The Queen object that the ServerLogger was called from, passing in 'this' should do the trick.
      */
-    public ServerLogger(Queen queen) {
+    ServerLogger(Queen queen) {
         this.mQueen = queen;
     }
 
@@ -67,7 +66,7 @@ public class ServerLogger extends Logger {
      * @param message The log entry message.
      * @return Formatted log entry.
      */
-    String logErrForResult(String context, String message) {
+    public String logErrForResult(String context, String message) {
         logErr(context, message);
         return message;
     }
@@ -79,7 +78,7 @@ public class ServerLogger extends Logger {
      * @param message The log entry message.
      * @return Formatted log entry.
      */
-    String logWarnForResult(String context, String message) {
+    public String logWarnForResult(String context, String message) {
         logWarn(context, message);
         return message;
     }
@@ -91,13 +90,13 @@ public class ServerLogger extends Logger {
      * @param message The log entry message.
      * @return Formatted log entry.
      */
-    String logInfoForResult(String context, String message) {
+    public String logInfoForResult(String context, String message) {
         logInfo(context, message);
         return message;
     }
 
     @Override
-    void logToStdOut(String message) {
+    public void logToStdOut(String message) {
         super.logToStdOut(message);
         if (getCanLogToFile()) logToFile(Util.defaultLogDir() + mQueen.getName() + ".log", message);
     }
@@ -108,7 +107,7 @@ public class ServerLogger extends Logger {
      * @param message The log entry message.
      * @return The log entry message.
      */
-    String logToStdOutForResult(String message) {
+    public String logToStdOutForResult(String message) {
         logToStdOut(message);
         return message;
     }

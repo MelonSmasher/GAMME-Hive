@@ -1,7 +1,8 @@
-package com.melonsmasher.hivegamme;
+package com.melonsmasher.hivegamme.client;
 
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import com.melonsmasher.hivegamme.Packets;
 
 /**
  * Created by melon on 3/26/16.

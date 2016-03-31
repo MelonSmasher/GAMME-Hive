@@ -3,94 +3,95 @@ package com.melonsmasher.hivegamme;
 /**
  * Created by melon on 3/26/16.
  */
-class Packets {
-    static class Packet00JoinRequest {
-        String name = "Drone";
+
+public class Packets {
+    public static class Packet00JoinRequest {
+        public String name = "Drone";
     }
 
-    static class Packet01JoinResponse {
-        String name = "Drone";
-        boolean a;
+    public static class Packet01JoinResponse {
+        public String name = "Drone";
+        public boolean a;
     }
 
-    static class Packet02Ping {
-        String name = "Drone";
-        String m = "PING";
+    public static class Packet02Ping {
+        public String name = "Drone";
+        public String m = "PING";
     }
 
-    static class Packet03Pong {
-        String name = "Drone";
-        String m = "PONG";
+    public static class Packet03Pong {
+        public String name = "Drone";
+        public String m = "PONG";
     }
 
-    static class Packet04Message {
-        String name = "Drone";
-        String text;
+    public static class Packet04Message {
+        public String name = "Drone";
+        public String text;
     }
 
-    static class Packet05GammeLog {
-        String name = "Drone";
-        String text;
+    public static class Packet05GammeLog {
+        public String name = "Drone";
+        public String text;
     }
 
-    static class Packet06PayloadRequest {
-        String name = "Drone";
+    public static class Packet06PayloadRequest {
+        public String name = "Drone";
     }
 
-    static class Packet07PayloadResponse {
-        String job_name;
-        String payload;
-        String server;
-        String google_apps_admin;
-        int retry_count;
-        boolean imap_security;
-        int imap_port;
-        String imap_password;
-        String imap_server_type;
-        String gmail_key;
-        String google_domain;
-        String exclude_top_level_folders;
-        int threads;
+    public static class Packet07PayloadResponse {
+        public String job_name;
+        public String payload;
+        public String server;
+        public String google_apps_admin;
+        public int retry_count;
+        public boolean imap_security;
+        public int imap_port;
+        public String imap_password;
+        public String imap_server_type;
+        public String gmail_key;
+        public String google_domain;
+        public String exclude_top_level_folders;
+        public int threads;
     }
 
-    static class Packet08NoWorkAvailable {
+    public static class Packet08NoWorkAvailable {
     }
 
-    static class Packet09NotifyBusy {
-        String name;
+    public static class Packet09NotifyBusy {
+        public String name;
     }
 
-    static class Packet10NotifyFree {
-        String name;
+    public static class Packet10NotifyFree {
+        public String name;
     }
 
-    static class Packet11ProgressUpdate {
-        String name;
-        String job_name;
-        int progress;
+    public static class Packet11ProgressUpdate {
+        public String name;
+        public String job_name;
+        public int progress;
     }
 
-    static class Packet12JobComplete {
-        String name;
-        String server;
-        String job_name;
+    public static class Packet12JobComplete {
+        public String name;
+        public String server;
+        public String job_name;
     }
 
-    static class Packet13LogInfo {
-        String name = "Drone";
-        String job_name;
-        String text;
+    public static class Packet13LogInfo {
+        public String name = "Drone";
+        public String job_name;
+        public String text;
     }
 
-    static class Packet14LogError {
-        String name = "Drone";
-        String job_name;
-        String text;
+    public static class Packet14LogError {
+        public String name = "Drone";
+        public String job_name;
+        public String text;
     }
 
-    static class Packet15LogWarning {
-        String name = "Drone";
-        String job_name;
-        String text;
+    public static class Packet15LogWarning {
+        public String name = "Drone";
+        public String job_name;
+        public String text;
     }
 }

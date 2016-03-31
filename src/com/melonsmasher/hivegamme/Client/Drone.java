@@ -1,6 +1,8 @@
-package com.melonsmasher.hivegamme;
+package com.melonsmasher.hivegamme.client;
 
 import com.esotericsoftware.kryonet.Client;
+import com.melonsmasher.hivegamme.Packets;
+import com.melonsmasher.hivegamme.Util;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -19,6 +21,9 @@ public class Drone {
     private JSONObject config = null;
     private ClientLogger mLogger;
 
+    /**
+     * The Drone Client class.
+     */
     private Drone() {
 
         // Set our drone name
@@ -100,6 +105,11 @@ public class Drone {
         }
     }
 
+    /**
+     * This function spawns a background thread that determines if the Drone is actively working or just idle.
+     * If the Drone is working this thread sleeps for 30 seconds.
+     * If the drone is not working it sends a work request packet and then cools down for 5 seconds to avoid flooding the queen.
+     */
     private void requestWork() {
         // Work manager thread
         new Thread() {
@@ -137,7 +147,12 @@ public class Drone {
         }.start();
     }
 
-    // Fire up worker thread
+    /**
+     * This method spawns a worker thread, and ensures that the job environment is up to snuff.
+     * It then runs the GAMME tool with parameters obtained from the payload packet.
+     *
+     * @param packet This packet contains all of the information needed to begin working.
+     */
     void beginWork(Packets.Packet07PayloadResponse packet) {
         setBusy(true);
         setWaitingForWorkResponse(false);
@@ -233,6 +248,11 @@ public class Drone {
         }.start();
     }
 
+    /**
+     * This method wraps around the GAMME tool and is called in the worker thread.
+     *
+     * @param options GAMME command arguments
+     */
     private void execGamme(String options) {
         Runtime rt = Runtime.getRuntime();
         String command = config.getString("gamme_location") + " " + options.trim();
@@ -285,6 +305,12 @@ public class Drone {
         }
     }
 
+    /**
+     * This method loads the configuration file into memory
+     *
+     * @param strict If we are strict the Drone will halt if it cannot load it's configuration. This is needed when it is first run.
+     *               Otherwise it can remain off, as the old configuration will be used.
+     */
     private void loadConfig(boolean strict) {
         String configFilePath = Util.defaultConfDir() + "conf.json";
         JSONObject old_config = config;
@@ -327,7 +353,6 @@ public class Drone {
             System.exit(7);
         }
     }
-
 
     String getmJobName() {
         return mJobName;

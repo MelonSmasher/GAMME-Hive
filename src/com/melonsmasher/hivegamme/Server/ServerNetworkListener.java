@@ -1,7 +1,9 @@
-package com.melonsmasher.hivegamme;
+package com.melonsmasher.hivegamme.server;
 
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import com.melonsmasher.hivegamme.Packets;
+import com.melonsmasher.hivegamme.Util;
 
 /**
  * Created by melon on 3/26/16.
@@ -10,6 +12,11 @@ class ServerNetworkListener extends Listener {
 
     private Queen mQueen;
 
+    /**
+     * Listens for packet events from clients
+     *
+     * @param queen The main Queen instance
+     */
     ServerNetworkListener(Queen queen) {
         this.mQueen = queen;
     }
@@ -52,23 +59,54 @@ class ServerNetworkListener extends Listener {
         } else if (o instanceof Packets.Packet10NotifyFree) {
 
         } else if (o instanceof Packets.Packet11ProgressUpdate) {
+
             Packets.Packet11ProgressUpdate packet = (Packets.Packet11ProgressUpdate) o;
             mQueen.updateJobProgress(packet.job_name, packet.progress);
+
         } else if (o instanceof Packets.Packet12JobComplete) {
+
             Packets.Packet12JobComplete packet = (Packets.Packet12JobComplete) o;
             mQueen.completeJob(packet.job_name, packet.server);
+
         } else if (o instanceof Packets.Packet13LogInfo && mQueen.isRemoteLoggingEnabled()) {
-            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet13LogInfo) o).job_name != null) {
-                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet13LogInfo) o).job_name + "-info.log", ((Packets.Packet13LogInfo) o).text);
+
+            Packets.Packet13LogInfo packet = (Packets.Packet13LogInfo) o;
+
+            if (mQueen.getLogger().getCanLogToFile() && (packet.job_name != null)) {
+                new Thread() {
+                    public void run() {
+                        String logFile = Util.defaultLogDir() + packet.job_name + "-info.log";
+                        mQueen.getLogger().logToFile(logFile, packet.text);
+                    }
+                }.start();
             }
+
         } else if (o instanceof Packets.Packet14LogError && mQueen.isRemoteLoggingEnabled()) {
-            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet14LogError) o).job_name != null) {
-                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet14LogError) o).job_name + "-error.log", ((Packets.Packet14LogError) o).text);
+
+            Packets.Packet14LogError packet = (Packets.Packet14LogError) o;
+
+            if (mQueen.getLogger().getCanLogToFile() && packet.job_name != null) {
+                new Thread() {
+                    public void run() {
+                        String logFile = Util.defaultLogDir() + packet.job_name + "-error.log";
+                        mQueen.getLogger().logToFile(logFile, packet.text);
+                    }
+                }.start();
             }
+
         } else if (o instanceof Packets.Packet15LogWarning && mQueen.isRemoteLoggingEnabled()) {
-            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet15LogWarning) o).job_name != null) {
-                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet15LogWarning) o).job_name + "-warn.log", ((Packets.Packet15LogWarning) o).text);
+
+            Packets.Packet15LogWarning packet = (Packets.Packet15LogWarning) o;
+
+            if (mQueen.getLogger().getCanLogToFile() && packet.job_name != null) {
+                new Thread() {
+                    public void run() {
+                        String logFile = Util.defaultLogDir() + packet.job_name + "-warn.log";
+                        mQueen.getLogger().logToFile(logFile, packet.text);
+                    }
+                }.start();
             }
+
         }
     }
 

@@ -13,12 +13,12 @@ import java.nio.file.Paths;
 /**
  * Created by melon on 3/27/16.
  */
-class Util {
+public class Util {
 
     /**
      * A class full of various helper methods.
      */
-    Util() {
+    public Util() {
 
     }
 
@@ -30,7 +30,7 @@ class Util {
      * @return The contents of the target file in a String.
      * @throws IOException
      */
-    static String readFile(String path, Charset encoding)
+    public static String readFile(String path, Charset encoding)
             throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(path));
         return new String(encoded, encoding);
@@ -41,7 +41,7 @@ class Util {
      *
      * @param lKryo The current instance of Kryo. Usually mClient.getKryo() or mServer.getKryo().
      */
-    static void registerPackets(Kryo lKryo) {
+    public static void registerPackets(Kryo lKryo) {
         lKryo.register(Packets.Packet00JoinRequest.class);
         lKryo.register(Packets.Packet01JoinResponse.class);
         lKryo.register(Packets.Packet02Ping.class);
@@ -66,7 +66,7 @@ class Util {
      *
      * @return null || Config directory path.
      */
-    static String defaultConfDir() {
+    public static String defaultConfDir() {
         if (isWindows()) {
             return "C:\\Program Files\\GAMME Hive\\";
         } else if (isMac()) {
@@ -78,7 +78,12 @@ class Util {
         }
     }
 
-    static String defaultLogDir() {
+    /**
+     * Returns the value of the default log directory
+     *
+     * @return the value of the default log directory
+     */
+    public static String defaultLogDir() {
         if (isWindows()) {
             return "C:\\Program Files\\GAMME Hive\\log\\";
         } else if (isMac()) {
@@ -96,7 +101,7 @@ class Util {
      * @param dir_str The path of the directory.
      * @return A boolean value that should signify the directory's existence. If FALSE, you should assume that there was an issue while creating it.
      */
-    static boolean mkdir(String dir_str) {
+    public static boolean mkdir(String dir_str) {
         File dir = new File(dir_str);
         if (!dir.exists()) {
             try {
@@ -116,7 +121,7 @@ class Util {
      *
      * @return The machines name or the epoch if the name could not be determined.
      */
-    static String getName() {
+    public static String getName() {
         String name;
         try {
             InetAddress addr;
