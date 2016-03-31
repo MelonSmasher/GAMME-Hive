@@ -1,6 +1,5 @@
 package com.melonsmasher.hivegamme;
 
-import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 
@@ -18,13 +17,13 @@ class ClientNetworkListener extends Listener {
     @Override
     public void connected(Connection connection) {
         super.connected(connection);
-        System.out.println("[DRONE][INFO] >> Joining the hive!");
+        mDrone.getLogger().logInfo("SYS", "Joining the hive!");
     }
 
     @Override
     public void disconnected(Connection connection) {
+        mDrone.getLogger().logInfo("SYS", "Left the hive!");
         super.disconnected(connection);
-        System.out.println("[DRONE][INFO] >> Left the hive!");
     }
 
     @Override
@@ -33,20 +32,20 @@ class ClientNetworkListener extends Listener {
         if (o instanceof Packets.Packet01JoinResponse) {
             Packets.Packet01JoinResponse response = (Packets.Packet01JoinResponse) o;
             if (response.a) {
-                System.out.println("[QUEEN][INFO] >> Welcome!");
+                mDrone.getLogger().logInfo("HIVE", "Welcome!");
             } else {
-                System.out.println("[QUEEN][INFO] >> Your join request has been denied!");
+                mDrone.getLogger().logErr("HIVE", "Your join request has been denied! Exit Code: 2");
                 connection.close();
+                mDrone.setStarted(false);
                 System.exit(2);
             }
         } else if (o instanceof Packets.Packet03Pong) {
-            System.out.println("[QUEEN][MSG] >> " + ((Packets.Packet03Pong) o).m);
+            mDrone.getLogger().logInfo("HIVE", ((Packets.Packet03Pong) o).m);
         } else if (o instanceof Packets.Packet07PayloadResponse) {
-            System.out.println("[DRONE][INFO] >> Obtained workload from the Queen.");
             Packets.Packet07PayloadResponse packet = (Packets.Packet07PayloadResponse) o;
             mDrone.beginWork(packet);
         } else if (o instanceof Packets.Packet08NoWorkAvailable) {
-            System.out.println("[QUEEN][MSG] >> No work, sit tight.");
+            mDrone.getLogger().logInfo("HIVE", "No work, sit tight.");
             mDrone.setBusy(false);
             mDrone.setWaitingForWorkResponse(false);
         }

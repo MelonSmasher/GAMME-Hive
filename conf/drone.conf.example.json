@@ -5,6 +5,7 @@
     "queen_address": "localhost",
     "job_dir": "C:\\Program Files\\GAMME Hive\\jobs",
     "timeout": 5000,
+    "remote_logging": true,
     "gamme_location": "C:\\Program Files (x86)\\Google\\Google Apps Migration\\ExchangeMigration.exe"
   }
 }

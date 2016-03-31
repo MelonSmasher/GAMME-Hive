@@ -1,6 +1,5 @@
 package com.melonsmasher.hivegamme;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Server;
 
 import org.json.*;
@@ -8,6 +7,7 @@ import org.json.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.sql.*;
 
@@ -17,15 +17,22 @@ import java.sql.*;
 public class Queen {
 
     private int mPortTCP = 25851, mPortUDP = 25852;
-    private String mGmailKey;
-    private boolean started = true;
+    private String mGmailKey, mName;
+    private boolean started = true, mRemoteLoggingEnabled = false;
     private Connection mySQLConnection = null;
     private Statement mStatement = null;
-    private JSONObject config;
+    private JSONObject config = null;
+    private ServerLogger mLogger;
 
     private Queen() {
-
-        System.out.println("[QUEEN][HIVE][INFO] >> Loading configuration.");
+        // Set the server's name
+        setName(Util.getName());
+        // Make sure that the log dir exists.
+        Util.mkdir(Util.defaultLogDir());
+        // Create a new ServerLogger instance
+        mLogger = new ServerLogger(this);
+        mLogger.logInfo("SYS", "Loading configuration...");
+        // Load the configuration for the first time.
         loadConfig(true);
         // Start thread that reloads the configuration every minute
         new Thread() {
@@ -43,12 +50,11 @@ public class Queen {
                 }
             }
         }.start();
-
+        // Initiate our connection to MySQL
         initSQL();
-
-        System.out.println("[QUEEN][HIVE][INFO] >> Reading emails and servers...");
+        mLogger.logInfo("SYS", "Reading emails and servers...");
         // Look for new addresses every 10 seconds
-        new Thread() {
+        new Thread() { // Create a new thread that reloads the auth token, server list, and email list periodically.
             public void run() {
                 while (true) {
                     try {
@@ -65,49 +71,77 @@ public class Queen {
                 }
             }
         }.start();
-
-        System.out.println("[QUEEN][HIVE][INFO] >> Initializing server instance...");
-
+        mLogger.logInfo("SYS", "Initializing server instance...");
+        // Instantiate new server object with overloaded packet sizes
         Server mServer = new Server(163840, 20480);
+        // Create a new listener
         ServerNetworkListener mListener = new ServerNetworkListener(this);
+        // Attach the server instance to our listener instance
         mServer.addListener(mListener);
-
+        // Try to bind to our ports
         try {
             mServer.bind(mPortTCP, mPortUDP);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][HIVE][ERROR] >> Failed to bind to TCP: " + mPortTCP + " and UDP: " + mPortUDP);
+            mLogger.logErr("SYS", "Failed to bind to TCP: " + mPortTCP + " and UDP: " + mPortUDP + "! - Exit Code: 1");
+            started = false;
+            System.exit(1);
         }
-
+        // Register packets with Kryo
         Util.registerPackets(mServer.getKryo());
-
+        // Try to start the server
         try {
             mServer.start();
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][HIVE][ERROR] >> Failed to start server!");
+            mLogger.logErr("SYS", "Failed to start server! - Exit Code: 2");
+            started = false;
+            System.exit(2);
         }
-
-        System.out.println("[QUEEN][HIVE][INFO] >> Server started and listening on TCP: " + mPortTCP + " and UDP: " + mPortUDP);
+        mLogger.logInfo("SYS", "Server started and listening on TCP: " + mPortTCP + " and UDP: " + mPortUDP);
     }
 
-    private void loadConfig(boolean init) {
+
+    /**
+     * @param strict Should the system exit with code 3 if the config cannot be reloaded?
+     */
+    private void loadConfig(boolean strict) {
         String configFilePath = Util.defaultConfDir() + "conf.json";
+        JSONObject old_config = config;
+        boolean shouldReload = true;
         try {
             String configStr = Util.readFile(configFilePath, Charset.defaultCharset());
             config = new JSONObject(configStr);
             config = config.getJSONObject("queen");
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("[QUEEN][HIVE][ERROR] >> Could not find configuration file: " + configFilePath);
-            if (init) {
+        } catch (Exception e) {
+            if (strict) {
+                e.printStackTrace();
+                mLogger.logErr("SYS", "Could not find configuration file: " + configFilePath + " - Error Code: 3");
+                started = false;
                 System.exit(3);
+            } else {
+                shouldReload = false;
+                mLogger.logWarn("SYS", "Could not find configuration file: " + configFilePath + " Using last known configuration...");
             }
         }
-        // Load config into global vars
-        mPortTCP = config.getInt("tcp_port");
-        mPortUDP = config.getInt("udp_port");
-
+        try {
+            mRemoteLoggingEnabled = config.getBoolean("remote_logging");
+        } catch (Exception e) {
+            mRemoteLoggingEnabled = false;
+            mLogger.logWarn("SYS", "Option: \"remote_logging\" not defined in config file. Assuming false.");
+        }
+        if (shouldReload) {
+            // Load config into global vars
+            mPortTCP = config.getInt("tcp_port");
+            mPortUDP = config.getInt("udp_port");
+        } else {
+            config = old_config;
+        }
+        if (config == null) {
+            mLogger.logErr("SYS", "Could load/reload the configuration. - Error Code: 4");
+            started = false;
+            System.exit(4);
+        }
     }
 
     private void initSQL() {
@@ -126,14 +160,16 @@ public class Queen {
             if (res.next()) {
                 version = ": " + res.getString(1);
             }
-            System.out.println("[QUEEN][HIVE][INFO] >> Connection to MySQL has been established" + version);
+            mLogger.logInfo("SYS", "Connection to MySQL has been established" + version);
         } catch (SQLException ex) {
             ex.printStackTrace();
-            System.out.println("[QUEEN][HIVE][ERROR] >> Could not connect to MySQL. Please check config... Exiting!");
+            mLogger.logErr("SYS", "Could not connect to MySQL. Please check config... Exiting! - Error Code: 4");
+            started = false;
             System.exit(4);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("[QUEEN][HIVE][ERROR] >> Could not load MySQL configuration. Please check config... Exiting!");
+            mLogger.logErr("SYS", "[QUEEN][HIVE][ERROR] >> Could not load MySQL configuration. Please check config... Exiting! - Error Code: 4");
+            started = false;
             System.exit(4);
         }
     }
@@ -154,10 +190,10 @@ public class Queen {
                 }
             }
             if (count > 0) {
-                System.out.println("[QUEEN][HIVE][INFO] >> Found new " + count + " new email addresses.");
+                mLogger.logInfo("SYS", "Found new " + count + " new email addresses.");
             }
         } catch (IOException e) {
-            System.out.println("[QUEEN][HIVE][INFO] >> No emails obtained. Looking for them here: " + mEmailFile);
+            mLogger.logWarn("SYS", "No emails obtained. Looking for them here: " + mEmailFile);
         }
     }
 
@@ -168,7 +204,7 @@ public class Queen {
                 try {
                     ResultSet res = mStatement.executeQuery("SELECT * FROM servers WHERE address='" + line + "'");
                     if (!res.next()) {
-                        System.out.println("[QUEEN][HIVE][INFO] >> Found new server(" + line + ")");
+                        mLogger.logInfo("SYS", "Found new server(" + line + ")");
                         mStatement.executeUpdate("INSERT INTO servers(`id`, `address`) VALUES (null,'" + line + "')");
                     }
                 } catch (SQLException ex) {
@@ -176,7 +212,7 @@ public class Queen {
                 }
             }
         } catch (IOException e) {
-            System.out.println("[QUEEN][HIVE][INFO] >> No servers obtained. Looking for them here: " + mServersFile);
+            mLogger.logWarn("SYS", "No servers obtained. Looking for them here: " + mServersFile);
         }
     }
 
@@ -209,7 +245,7 @@ public class Queen {
         new Thread() {
             public void run() {
                 try {
-                    System.out.println("[QUEEN][JOB][" + job_name + "] >> Progress: 100%! Complete!");
+                    mLogger.logInfo("JOB", job_name + " Complete!");
                     Statement statement = mySQLConnection.createStatement();
                     statement.executeUpdate("UPDATE jobs SET `completed`=TRUE, `progress`=100 WHERE `job_name`='" + job_name + "'");
                     statement.closeOnCompletion();
@@ -227,7 +263,7 @@ public class Queen {
         new Thread() {
             public void run() {
                 try {
-                    System.out.println("[QUEEN][JOB][" + job_name + "] >> Progress: " + percent + "%");
+                    mLogger.logInfo("JOB", job_name + " - Progress: " + percent + "%");
                     Statement statement = mySQLConnection.createStatement();
                     statement.executeUpdate("UPDATE jobs SET `progress`=" + percent + " WHERE `job_name`=" + job_name);
                     statement.closeOnCompletion();
@@ -250,7 +286,7 @@ public class Queen {
     }
 
     void sendWorkLoad(com.esotericsoftware.kryonet.Connection conn, String name) {
-        System.out.println("[QUEEN][DRONE][" + name + "] >> Constructing workload.");
+        mLogger.logInfo("JOB", "Constructing workload for: " + name);
         StringBuilder payload = new StringBuilder("");
         StringBuilder idString = new StringBuilder("");
         StringBuilder ids = new StringBuilder("");
@@ -258,10 +294,10 @@ public class Queen {
         try {
             Statement selectAddresses = mySQLConnection.createStatement();
             ResultSet res = selectAddresses.executeQuery("SELECT id,email FROM emails ORDER BY pass ASC LIMIT " + droneThreads + " FOR UPDATE");
-            System.out.println("[QUEEN][DRONE][" + name + "] >> Gathering target email addresses.");
+            mLogger.logInfo("JOB", "Gathering target email addresses for: " + name);
             if (res.next()) {
                 res.beforeFirst();
-                System.out.println("[QUEEN][DRONE][" + name + "] >> Building payload.");
+                mLogger.logInfo("JOB", "Building payload for: " + name);
 
                 while (res.next()) {
                     payload.append(res.getString(2) + "\n");
@@ -280,23 +316,23 @@ public class Queen {
             Statement getServer = mySQLConnection.createStatement();
             ResultSet serverRes = getServer.executeQuery("SELECT * FROM servers ORDER BY current_jobs ASC ");
             String jobName = "";
-            System.out.println("[QUEEN][DRONE][" + name + "] >> Selecting server.");
+            mLogger.logInfo("JOB", "Selecting server for: " + name);
             if (!mPayload.isEmpty()) {
                 serverRes.first();
-                System.out.println("[QUEEN][DRONE][" + name + "] >> Server has been selected: " + serverRes.getString(2));
+                mLogger.logInfo("JOB", "Server has been selected: " + serverRes.getString(2));
                 Statement getDrone = mySQLConnection.createStatement();
                 ResultSet droneInfo = getDrone.executeQuery("SELECT * from drones where `connection_id`=" + conn.getID());
                 if (droneInfo.next()) {
                     droneInfo.first();
                     String droneID = droneInfo.getString(1);
                     jobName = droneInfo.getString(2) + "-" + String.valueOf(System.currentTimeMillis());
-                    System.out.println("[QUEEN][DRONE][" + name + "] >> New Job is being created: " + jobName);
+                    mLogger.logInfo("JOB", "New Job is being created: " + jobName);
                     Statement createJob = mySQLConnection.createStatement();
                     createJob.executeUpdate("INSERT INTO jobs(`id`,`job_name`,`drone_id`) VALUES (NULL, '" + jobName + "', " + droneID + ")", Statement.RETURN_GENERATED_KEYS);
                     ResultSet generatedKeys = createJob.getGeneratedKeys();
                     generatedKeys.first();
                     int jobID = generatedKeys.getInt(1);
-                    System.out.println("[QUEEN][DRONE][" + name + "] >> New Job created with ID: " + jobID);
+                    mLogger.logInfo("JOB", "New Job created with ID: " + jobID);
                     Statement createEmailJob = mySQLConnection.createStatement();
                     for (String id : ids.toString().split(",")) {
                         id = id.trim();
@@ -325,7 +361,7 @@ public class Queen {
                 packet.server = serverRes.getString(2);
 
                 conn.sendTCP(packet);
-                System.out.println("[QUEEN][DRONE][" + name + "] >> Workload has shipped!");
+                mLogger.logInfo("JOB", "Job: " + jobName + " has been dispatched to: " + name);
             } else {
                 Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
                 conn.sendUDP(packet);
@@ -335,6 +371,22 @@ public class Queen {
             Packets.Packet08NoWorkAvailable packet = new Packets.Packet08NoWorkAvailable();
             conn.sendUDP(packet);
         }
+    }
+
+    public boolean isRemoteLoggingEnabled() {
+        return this.mRemoteLoggingEnabled;
+    }
+
+    String getName() {
+        return mName;
+    }
+
+    void setName(String mName) {
+        this.mName = mName;
+    }
+
+    public ServerLogger getLogger() {
+        return mLogger;
     }
 
     public static void main(String[] args) {

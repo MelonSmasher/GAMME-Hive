@@ -76,13 +76,21 @@ class Packets {
         String job_name;
     }
 
-    static class Packet13GammeLogMsg {
+    static class Packet13LogInfo {
         String name = "Drone";
+        String job_name;
         String text;
     }
 
-    static class Packet14GammeLogErr {
+    static class Packet14LogError {
         String name = "Drone";
+        String job_name;
+        String text;
+    }
+
+    static class Packet15LogWarning {
+        String name = "Drone";
+        String job_name;
         String text;
     }
 }

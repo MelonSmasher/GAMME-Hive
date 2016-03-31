@@ -17,13 +17,13 @@ class ServerNetworkListener extends Listener {
     @Override
     public void connected(Connection connection) {
         super.connected(connection);
-        System.out.println("[QUEEN][HIVE][INFO] >> A drone is joining the hive!");
+        mQueen.getLogger().logInfo("HIVE", "A drone is joining the hive!");
     }
 
     @Override
     public void disconnected(Connection connection) {
         super.disconnected(connection);
-        System.out.println("[QUEEN][HIVE][INFO] >> A drone has left the hive.");
+        mQueen.getLogger().logInfo("HIVE", "A drone has left the hive.");
     }
 
     @Override
@@ -32,15 +32,15 @@ class ServerNetworkListener extends Listener {
         if (o instanceof Packets.Packet00JoinRequest) {
             Packets.Packet01JoinResponse response = new Packets.Packet01JoinResponse();
             response.a = true;
-            System.out.println("[DRONE][" + ((Packets.Packet00JoinRequest) o).name + "][MSG] >> Reporting in for duty!");
+            mQueen.getLogger().logInfo("MSG", ((Packets.Packet00JoinRequest) o).name + " Reporting in for duty!");
             mQueen.storeDroneInfo(((Packets.Packet00JoinRequest) o).name, connection.getID());
             connection.sendTCP(response);
         } else if (o instanceof Packets.Packet02Ping) {
             Packets.Packet03Pong response = new Packets.Packet03Pong();
-            System.out.println("[DRONE][" + ((Packets.Packet02Ping) o).name + "][MSG] >> " + ((Packets.Packet02Ping) o).m + ".");
+            mQueen.getLogger().logInfo("MSG", ((Packets.Packet02Ping) o).m);
             connection.sendTCP(response);
         } else if (o instanceof Packets.Packet04Message) {
-            System.out.println("[DRONE][" + ((Packets.Packet04Message) o).name + "][MSG] >> " + ((Packets.Packet04Message) o).text + ".");
+            mQueen.getLogger().logInfo("MSG", ((Packets.Packet04Message) o).name + ": " + ((Packets.Packet04Message) o).text);
         } else if (o instanceof Packets.Packet06PayloadRequest) {
             new Thread() {
                 public void run() {
@@ -57,6 +57,18 @@ class ServerNetworkListener extends Listener {
         } else if (o instanceof Packets.Packet12JobComplete) {
             Packets.Packet12JobComplete packet = (Packets.Packet12JobComplete) o;
             mQueen.completeJob(packet.job_name, packet.server);
+        } else if (o instanceof Packets.Packet13LogInfo && mQueen.isRemoteLoggingEnabled()) {
+            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet13LogInfo) o).job_name != null) {
+                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet13LogInfo) o).job_name + "-info.log", ((Packets.Packet13LogInfo) o).text);
+            }
+        } else if (o instanceof Packets.Packet14LogError && mQueen.isRemoteLoggingEnabled()) {
+            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet14LogError) o).job_name != null) {
+                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet14LogError) o).job_name + "-error.log", ((Packets.Packet14LogError) o).text);
+            }
+        } else if (o instanceof Packets.Packet15LogWarning && mQueen.isRemoteLoggingEnabled()) {
+            if (mQueen.getLogger().getCanLogToFile() && ((Packets.Packet15LogWarning) o).job_name != null) {
+                mQueen.getLogger().logToFile(Util.defaultLogDir() + ((Packets.Packet15LogWarning) o).job_name + "-warn.log", ((Packets.Packet15LogWarning) o).text);
+            }
         }
     }
 

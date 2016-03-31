@@ -5,6 +5,7 @@
     "server_list": "/etc/gamme_hive/servers.list",
     "email_list": "/etc/gamme_hive/emails.list",
     "service_account_key_path": "/etc/gamme_hive/privatekey.json",
+    "remote_logging": false,
     "mysql": {
       "host": "localhost",
       "port": 3306,
@@ -21,7 +22,7 @@
       "imap_password": "StrongPassword",
       "imap_server_type": "courier",
       "google_domain": "domain.tld",
-      "exclude_top_level_folders" : [
+      "exclude_top_level_folders": [
         "BULK",
         "SPAM"
       ]

@@ -20,8 +20,8 @@ choco install conemu -y
 
 ```powershell
 New-Item "C:\Program Files\GAMME Hive" -type directory;
-(New-Object System.Net.WebClient).DownloadFile("https://github.com/MelonSmasher/GAMME-Hive/releases/download/v0.0.1/HiveDrone.jar", "C:\Program Files\GAMME Hive\HiveDrone.jar");
-(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.0.1/conf/drone.conf.example.json", "C:\Program Files\GAMME Hive\conf.json");
+(New-Object System.Net.WebClient).DownloadFile("https://github.com/MelonSmasher/GAMME-Hive/releases/download/v0.1.0/HiveDrone.jar", "C:\Program Files\GAMME Hive\HiveDrone.jar");
+(New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.1.0/conf/drone.conf.example.json", "C:\Program Files\GAMME Hive\conf.json");
 ```
 
 Then open: `"C:\Program Files\GAMME Hive\conf.json"` in a text editor and configure the drone.
@@ -41,14 +41,14 @@ mkdir -p /opt/hive;
 mkdir -p /etc/gamme_hive;
 cd /opt/hive;
 # Get launcher script
-wget https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.0.1/sbin/hive.sh;
+wget https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.1.0/sbin/hive.sh;
 # Download binary
-wget https://github.com/MelonSmasher/GAMME-Hive/releases/download/v0.0.1/HiveQueen.jar;
+wget https://github.com/MelonSmasher/GAMME-Hive/releases/download/v0.1.0/HiveQueen.jar;
 chmod +x hive.sh;
 ln -s /opt/hive/hive.sh /usr/sbin/hive;
 # Download example conf:
 cd /etc/gamme_hive;
-wget https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.0.1/conf/queen.conf.example.json -O conf.json;
+wget https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.1.0/conf/queen.conf.example.json -O conf.json;
 ```
 
 #### Step 2: Install Java
@@ -73,7 +73,7 @@ GRANT ALL ON hive.* TO hive_user@localhost IDENTIFIED BY 'Your-Strong-Password';
 FLUSH PRIVILEGES;
 ```
 
-Paste the contents of this file: [https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.0.1/conf/hive.sql](https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.0.1/conf/hive.sql) into the MySQL prompt while using the `hive` database.
+Paste the contents of this file: [https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.1.0/conf/hive.sql](https://raw.githubusercontent.com/MelonSmasher/GAMME-Hive/v0.1.0/conf/hive.sql) into the MySQL prompt while using the `hive` database.
 
 Optionally, it might be useful to have PHP My Admin insatlled:
 
